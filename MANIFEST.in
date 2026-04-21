@@ -1,0 +1,6 @@
+include README.md
+include INSTALL.md
+include CHANGELOG.md
+include LICENSE
+include chilbolton_raingauge_utils/*.json
+include chilbolton_raingauge_utils/*.chdb

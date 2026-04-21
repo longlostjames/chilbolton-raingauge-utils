@@ -1,0 +1,78 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "chilbolton-raingauge-utils"
+version = "1.0.0"
+description = "Processing utilities for Chilbolton raingauge data"
+readme = "README.md"
+authors = [{name = "Chris Walden"}]
+maintainers = [{name = "Chris Walden"}]
+license = {file = "LICENSE"}
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Atmospheric Science",
+]
+requires-python = ">=3.11"
+dependencies = [
+    "numpy>=1.24.0",
+    "polars>=0.19.0",
+    "pandas>=2.0.0",
+    "xarray>=2023.1.0",
+    "netCDF4>=1.6.0",
+    "matplotlib>=3.7.0",
+    "cftime>=1.6.0",
+    "ncas-amof-netcdf-template>=2.0.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7.0", "pytest-cov>=4.0", "black>=23.0", "flake8>=6.0", "mypy>=1.0"]
+docs = ["sphinx>=4.0", "sphinx_rtd_theme>=1.0"]
+
+[project.urls]
+Homepage = "https://github.com/longlostjames/chilbolton-raingauge-utils"
+Documentation = "https://chilbolton-raingauge-utils.readthedocs.io"
+Repository = "https://github.com/longlostjames/chilbolton-raingauge-utils"
+Issues = "https://github.com/longlostjames/chilbolton-raingauge-utils/issues"
+
+[project.scripts]
+process-raingauge = "chilbolton_raingauge_utils.process_raingauge:main"
+process-raingauge-f5 = "chilbolton_raingauge_utils.process_raingauge_f5:main"
+process-raingauge-stfc = "chilbolton_raingauge_utils.process_raingauge_stfc:main"
+process-raingauge-year = "chilbolton_raingauge_utils.proc_year:main"
+process-raingauge-year-f5 = "chilbolton_raingauge_utils.proc_year_f5:main"
+process-raingauge-year-stfc = "chilbolton_raingauge_utils.proc_year_stfc:main"
+process-raingauge-month = "chilbolton_raingauge_utils.proc_month:main"
+process-raingauge-month-f5 = "chilbolton_raingauge_utils.proc_month_f5:main"
+process-raingauge-month-stfc = "chilbolton_raingauge_utils.proc_month_stfc:main"
+split-cr1000x-data-daily = "chilbolton_raingauge_utils.split_cr1000x_data_daily:main"
+make-raingauge-quicklooks = "chilbolton_raingauge_utils.make_quicklooks:main"
+extract-raingauge-bad-data-indices = "chilbolton_raingauge_utils.extract_bad_data_indices:main"
+apply-raingauge-bad-data-indices = "chilbolton_raingauge_utils.apply_bad_data_indices:main"
+
+[tool.setuptools]
+packages = ["chilbolton_raingauge_utils"]
+
+[tool.setuptools.package-data]
+chilbolton_raingauge_utils = ["*.json", "*.chdb", "*.sh"]
+
+[tool.black]
+line-length = 100
+target-version = ['py311']
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false

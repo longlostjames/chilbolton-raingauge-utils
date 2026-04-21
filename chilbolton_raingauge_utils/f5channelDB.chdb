@@ -1,0 +1,1276 @@
+# Chilbolton data acquisition system Channel Data Base
+#
+# Started J.Macfarlane, Chilbolton Observatory 10 August 1999
+# Updated E.Brand, Chilbolton Observatory 15 July 2002
+
+channel rg001dc_ch
+
+    # Drop counting rain gauge on roof of Rx cabin
+    # Installed ????
+    # moved to turf wall
+    title Drop Counting Gauge (Turf Wall) 
+    location Chilbolton Rx Cabin
+    rawrange 0 139
+    rawunits drops
+    realrange 0 200
+    realunits mm/hr
+    interval 10.0
+    # EC8 params are: Location, Primary Address, Secondary Address, Channel Number
+    acquire uLink3020 1 9 16 0
+
+channel rg003rs_ch
+
+    # "Rain Sensor" rain gauge on ground near Rx cabin
+    # Installed ???? 
+    title Rain Sensor Gauge On Ground
+    location Chilbolton Rx Cabin
+    rawrange 0 50
+    rawunits drops
+    realrange 0 180
+    realunits mm/hr
+    interval 10.0
+    acquire uLink3020 1 9 16 5
+
+channel rg004tb_ch
+
+    # Tipping bucket rain gauge on ground near Rx cabin
+    # Installed ???? 
+    title Tipping Bucket Gauge On Ground
+    location Chilbolton Rx Cabin
+    rawrange 0 3
+    rawunits drops
+    realrange 0 216
+    realunits mm/hr
+    interval 10.0
+    acquire uLink3020 1 9 16 4
+
+channel rg006dc_ch
+
+    # Drop counting rain gauge on ground near Rx cabin
+    # Installed 26/08/99
+    title Drop Counting Gauge On Ground(1)
+    location Chilbolton Rx Cabin
+    rawrange 0 139
+    rawunits drops
+    realrange 0 200
+    realunits mm/hr
+    interval 10.0
+    # EC8 params are: Location, Primary Address, Secondary Address, Channel Number
+    acquire uLink3020 1 9 16 1
+
+channel rg008dc_ch
+
+    # Low rate drop counting rain gauge on ground
+    # Installed 26/08/99
+    title Low Rate Drop Counting Gauge
+    location Chilbolton Range
+    rawrange 0 90
+    rawunits drops
+    realrange 0 60
+    realunits mm/hr
+    interval 10.0
+    acquire uLink3020 1 9 16 2
+
+channel distrometer01_ch
+
+    # Joss Distrometer
+    #
+    title Joss Distrometer
+    rawrange -999 999
+    rawunits <null>
+    realrange -999 999
+    realunits <null>
+    acquire ada90 /dev/ttyS1
+    #acquire null
+
+channel dist01calc_ch
+
+    # Calculated rainfall rate from Joss Distrometer
+    #
+    title Calculated Distrometer Rain Rate
+    rawrange 0 200
+    rawunits mm/hr
+    realrange 0 200
+    realunits mm/hr
+    interval 10.0
+    acquire distromrate /dev/ttyS1
+    # ensure the above port is the same as the ada90's port
+    # or else you'll always get zero calculated rain rate.
+
+channel oat_ch
+
+    # General Eastern temp/DP temperature output, Rx cabin
+    # Installed ????
+    title Outside Air Temperature
+    location Chilbolton Rx Cabin
+    rawrange -500 500
+    rawunits mV*10
+    realrange -50 50
+    realunits deg.C
+    # HP_adc params: Location, Primary Address, Ch. Number
+    #acquire uLink3050 1 9 2 8
+    acquire uLink3050 1 9 2 2
+
+channel dp_ch
+
+    # General Eastern temp/DP dewpoint output, Rx cabin
+    # Monitor for the Held Dewpoint Output (PACER cycle removed) 
+    title Dew Point
+    location Chilbolton Rx Cabin
+    rawrange -500 500
+    rawunits mV*10
+    realrange -50 50
+    realunits deg.C
+    #acquire uLink3050 1 9 2 11 
+    acquire uLink3050 1 9 2 4
+ 
+channel dptest_ch
+
+    # General Eastern temp/DP dewpoint output, Rx cabin
+    # Monitor for the Tracked Dewpoint output (PACER cycle included) 
+    title Dew Point Tracked Output
+    location Chilbolton Rx Cabin
+    rawrange -500 500
+    rawunits mV*10
+    realrange -50 50
+    realunits deg.C
+    #acquire uLink3050 1 9 2 9
+    acquire uLink3050 1 9 2 3
+
+channel QFE_ch
+
+    # KDG Barometer, Rx cabin
+    # Installed ????
+    title Station Pressure (QFE)
+    location Chilbolton Rx Cabin
+    rawrange 0 1000
+    rawunits mV*10
+    realrange 900 1050
+    realunits mBar
+    #acquire uLink3050 1 9 2 1
+    acquire uLink3050 1 9 2 5 
+
+channel rg002opto_ch
+
+    # Optical raingauge on ground near Rx cabin
+    # On loan from Portsmouth University 
+    title Optical Rain Gauge On Ground
+    location Chilbolton Rx Cabin
+    rawrange 0 500
+    rawunits mV*10
+    realrange 0 500
+    realunits Unknown
+    acquire uLink3050 1 9 2 10
+
+channel rg010opto_ch
+
+    # Optical raingauge on ground near Rx cabin
+    # Installed. S/N 03010215 
+    title Optical Rain Gauge
+    location Chilbolton Rx Cabin
+    rawrange 0 500
+    rawunits mV*10
+    realrange 0 500
+    realunits mm hr-1
+    #acquire uLink3050 1 9 2 7
+    acquire null
+
+channel rg010optotest_ch
+
+   # Optical raingauge on ground near Rx cabin
+   # Installed May 2003 S/N 03010215
+     title Optical Rain Gauge Test carrier
+     location Chilbolton Rx Cabin
+     rawrange 0 500
+     rawunits mV*10
+     realrange 0 500
+     realunits Unknown
+     #acquire uLink3050 1 9 2 6
+     acquire null
+
+channel rg006syphon_ch
+
+    # Syphon raingauge on ground near Rx cabin
+    # Installed ????
+    title Syphon Rain Gauge On Ground
+    location Chilbolton Rx Cabin
+    rawrange 0 500
+    rawunits mV*10
+    realrange 0 50
+    realunits mm
+    # uLink3050 params: Bus (not implemented), Primary Address, Secondary Address, Channel No.
+    acquire uLink3050 1 9 3 0
+
+channel null
+
+    # Blank channel ID for use in format 5 files
+    # containing empty or unused channels
+    title Unused Channel
+    rawrange -1000 1000
+    rawunits mV*10
+    realrange -1000 1000
+    realunits null
+    acquire null
+
+channel R22bt_ch
+
+    # 22 GHz radiometer brightness temp
+    #
+    title 22.2 GHz Radiometer, Brightness Temp.
+    location Chilbolton Rx Cabin
+    rawrange -1000 741 
+    rawunits mV*10
+    realrange 745 0
+    realunits K
+    #acquire HP_adc 1 12 1 
+    #acquire HP_adc 1 16 1
+    acquire null
+
+channel R22ref_ch
+
+    # 22 GHz radiometer reference load temp
+    #
+    title 22.2 GHz Radiometer, Reference Temp.
+    location Chilbolton Rx Cabin
+    rawrange 0 300
+    rawunits mV*10
+    realrange 10 40
+    realunits deg.C
+    #acquire HP_adc 1 12 2
+    #acquire HP_adc 1 16 2
+    acquire null
+
+channel R28bt_ch
+
+    # 28 GHz radiometer brightness temp
+    #
+    title 28.8 GHz Radiometer, Brightness Temp.
+    location Chilbolton Rx Cabin
+    rawrange -1000 744 
+    rawunits mV*10
+    realrange 759 0
+    realunits K
+    #acquire HP_adc 1 12 1 
+    #acquire HP_adc 1 16 1 
+    acquire null
+
+channel R28ref_ch
+
+    # 28 GHz radiometer reference load temp
+    #
+    title 28.8 GHz Radiometer, Reference Temp.
+    location Chilbolton Rx Cabin
+    rawrange 0 300
+    rawunits mV*10
+    realrange 10 40
+    realunits deg.C
+    #acquire HP_adc 1 12 2 
+    #acquire HP_adc 1 16 2
+    acquire null
+
+channel R78bt_ch
+
+    # 78.5 GHz radiometer brightness temp
+    #
+    title 78.5 GHz Radiometer, Brightness Temp.
+    location Chilbolton Rx Cabin
+    rawrange -1000 1000
+    rawunits mV*10
+    realrange 300 0
+    realunits K
+    #acquire HP_adc 1 17 1 
+    acquire null
+
+channel R78ref_ch
+
+    # 78.5 GHz radiometer reference load temp
+    #
+    title 78.5 GHz Radiometer. Reference Temp.
+    location Chilbolton Rx Cabin
+    rawrange 0 300
+    rawunits mV*10
+    realrange 10 40
+    realunits deg.C
+    #acquire HP_adc 1 17 2
+    acquire null
+
+channel R94bt_ch
+
+    # 94.0 GHz radiometer brightness temp
+    #
+    title 94.0 GHz Radiometer. Brightness Temp.
+    location Chilbolton Rx Cabin
+    rawrange -1000 1000
+    rawunits mV*10
+    realrange 300 0
+    realunits K
+    #acquire HP_adc 1 17 3 
+    acquire null
+
+channel R94ref_ch
+
+    # 94.0 GHz radiometer reference load temp
+    #
+    title 94.0 GHz Radiometer. Reference Temp.
+    location Chilbolton Rx Cabin
+    rawrange 0 300
+    rawunits mV*10
+    realrange 10 40
+    realunits deg.C
+    #acquire HP_adc 1 17 4
+    acquire null
+
+channel Rx_ambient_ch
+
+    # Receive Portakabin ambient temperature.
+    #
+    title Rx Portakabin Ambient Temp.
+    location Chilbolton Rx Cabin
+    rawrange -10 40
+    rawunits mV*10
+    realrange -10 40
+    realunits deg.C
+    acquire uLink3050 1 9 2 7
+
+channel NEWRx_ambient_ch
+
+    # Receive Portakabin ambient temperature.
+    # New Temperature Sensor, Installed Feb2002
+    title NEW Rx Portakabin Ambient Temp.
+    location Chilbolton Rx Cabin
+    rawrange -100 400
+    rawunits mV*10
+    realrange -10 40
+    realunits deg.C
+    acquire uLink3051 1 9 4 8 
+
+channel CG4_resistance_ch
+
+    # thermistor on CG4
+    title CG4 thermistor
+    location CG4
+    rawrange 1000 120000 
+    rawunits R 
+    realrange 1000 120000 
+    realunits R
+    acquire uLink3051resistance 1 9 4 12
+
+channel mv_reference
+    # a millivolt reference
+    title millivolt reference
+    location where ever
+    rawrange 1000 120000
+    rawunits R
+    realrange 1000 120000
+    realunits R
+    acquire null
+
+channel ws_ch
+
+    # Wind Speed indicator on Rx cabin
+    title Wind Speed
+    location Chilbolton Rx Cabin
+    rawrange 0 751
+    rawunits mV*10
+    realrange 0 75
+    realunits m/s
+    #acquire uLink3050 1 9 2 4
+    acquire uLink3050 1 9 2 0 
+
+channel wd_ch
+
+    # Wind Direction indicator on Rx cabin
+    title Wind Direction
+    location Chilbolton Rx Cabin
+    rawrange -667 667
+    rawunits mV*10
+    realrange -300 300
+    realunits Degrees From South 
+    #acquire uLink3050 1 9 2 5
+    acquire uLink3050 1 9 2 1
+
+channel rg009dc_ch
+
+    # Drop counting rain gauge on ground near Rx cabin
+    # Installed 12/07/01
+    title Drop Counting Gauge On Ground(2)
+    location Chilbolton Rx Cabin
+    rawrange 0 139
+    rawunits drops
+    realrange 0 200
+    realunits mm/hr
+    interval 10.0
+    # EC8 params are: Location, Primary Address, Secondary Address, Channel Number
+    #acquire uLink3020 1 9 16 3
+    acquire null
+
+channel R37bt_ch
+
+    # 37.6 GHz radiometer brightness temp
+    #
+    title 37.6 GHz Radiometer, Brightness Temp.
+    location Chilbolton Rx Cabin
+    rawrange -1000 684
+    rawunits mV*10
+    realrange 757 0
+    realunits K
+    #acquire HP_adc 1 16 1 
+    #acquire HP_adc 1 12 3
+    acquire null
+
+channel R37ref_ch
+
+    # 37.6 GHz radiometer reference load temp
+    #
+    title 37.6 GHz Radiometer, Reference Temp.
+    location Chilbolton Rx Cabin
+    rawrange 0 300
+    rawunits mV*10
+    realrange 10 40
+    realunits deg.C
+    #acquire HP_adc 1 16 2
+    #acquire HP_adc 1 12 4
+    acquire null
+
+channel R37xtal_ch
+
+    # 37.6 GHz radiometer crystal phase voltage 
+    #
+    title 37.6 GHz Radiometer, Crystal Volts.
+    location Chilbolton Rx Cabin
+    rawrange 0 1000
+    rawunits mV*10
+    realrange 0 10
+    realunits V 
+    #acquire HP_adc 1 16 3
+    #acquire ulink3050 1 9 3 15
+    acquire null
+
+channel distromtest_sp
+
+    # Test Distrometer
+    # On test at Chilbolton
+    title Distrometer Test
+    rawrange -999 999
+    rawunits <null>
+    realrange -999 999
+    realunits <null>
+    acquire ada90 /dev/ttyS0
+
+channel rg001dc_sp
+
+    # Drop counting rain gauge at Sparsholt raingauge site. 
+    # Installed ????
+    # Moved to dedicated raingauge site
+    title Drop Counting Gauge, Ground - raingauge site 
+    location Sparsholt Raingauge Site
+    rawrange 0 139
+    rawunits drops
+    realrange 0 200
+    realunits mm/hr
+    interval 10.0
+    # EC8 params are: Location, Primary Address, Secondary Address, Channel Number
+    acquire uLink3020 1 9 16 0
+
+channel dist01calc_sp
+
+    # Calculated rainfall rate from Joss Distrometer
+    #
+    title Calculated Distrometer Rain Rate
+    rawrange 0 200
+    rawunits mm/hr
+    realrange 0 200
+    realunits mm/hr
+    interval 10.0
+    acquire distromrate /dev/ttyS1
+    # ensure the above port is the same as the ada90's port
+    # or else you'll always get zero calculated rain rate.
+
+channel distrometer01_sp
+
+    # Joss Distrometer
+    #
+    title Joss Distrometer
+    rawrange -999 999
+    rawunits <null>
+    realrange -999 999
+    realunits <null>
+    acquire ada90 /dev/ttyS1
+
+channel oat3_ch
+
+    # General Eastern temp/DP temperature output
+    # Installed 16/10/2007
+    title Outside Air Temp.(D.P. sensor Chilbolton cabin roof) 
+    location Chilbolton cabin roof
+    rawrange 0 500
+    rawunits mV*10
+    realrange -40 60
+    realunits deg.C
+    #acquire uLink3050 1 9 2 11
+    acquire null
+
+channel dp2_ch
+
+    # General Eastern temp/DP dewpoint output
+    # Installed 16/10/2007
+    title Dew Point(D.P. sensor Chilbolton cabin roof)
+    location Chilbolton cabin roof
+    rawrange 0 500
+    rawunits mV*10
+    realrange -40 60
+    realunits deg.C
+    #acquire uLink3050 1 9 2 12 
+    acquire null
+
+channel QFE_sp
+
+    # KDG Barometer, Inside Sparholt Cabin
+    # Installed ????
+    title Station Pressure (QFE) to 22/05/2007
+    location Sparsholt Cabin
+    rawrange 0 1000
+    rawunits mV*10
+    realrange 900 1050
+    realunits mBar
+    #acquire uLink3050 1 9 2 1
+
+channel QNH_sp
+
+    # KDG Barometer, Inside Sparholt Cabin
+    # Installed ????
+    # Reference to ONH entries have been removed
+    # This entry in the database has been left for 
+    # completeness and clarity
+    # All pressures are station only and not
+    # corrected to mean sea level
+    title Station Pressure (QNH)
+    location Sparsholt Cabin
+    rawrange 0 1000
+    rawunits mV*10
+    realrange 900 1050
+    realunits mBar
+    #acquire uLink3050 1 9 2 1
+
+channel solar_sp
+
+    # Solarimeter, Sparholt Cabin
+    # Installed ????
+    title Solarimeter to 22/05/2007
+    location Sparsholt Cabin
+    rawrange 0 1000
+    rawunits mV*10
+    realrange 0 1000
+    realunits W/m^2
+    #acquire uLink3050 1 9 2 10
+
+channel Rx385km_sp
+
+    # 38 GHz Receiver 5km Link,
+    # Sparsholt(Rx) - South Wonston water tower(Tx)
+    title 38 GHz 5km Link.
+    location Sparsholt Cabin
+    rawrange 28 268 
+    rawunits mV*10
+    realrange -100 -40
+    realunits dBm
+    #acquire uLink3050 1 9 3 0
+
+channel Rx545km_sp
+
+    # 54 GHz Receiver 5km Link,
+    # Sparsholt(Rx) - South Wonston water tower(Tx)
+    title 54 GHz 5km Link to 31/08/2006
+    location Sparsholt Cabin
+    rawrange -1000 1000
+    rawunits mV*10
+    realrange -60 -20
+    realunits dBm
+    #acquire uLink3050 1 9 3 1
+
+channel Rx565km_sp
+
+    # 56 GHz Receiver 5km Link,
+    # Sparsholt(Rx) - South Wonston water tower(Tx)
+    title 56 GHz 5km Link to 31/08/2006
+    location Sparsholt Cabin
+    rawrange -1000 1000
+    rawunits mV*10
+    realrange -60 -20
+    realunits dBm
+    #acquire uLink3050 1 9 3 2
+
+channel Rx20ITA_sp
+
+    # 18.7 GHz Beacon Receiver Italsat
+    # Installed ????
+    title 18.7 GHz Italsat
+    location Sparsholt Cabin
+    rawrange -1000 1000
+    rawunits mV*10
+    realrange -60 -20
+    realunits dB
+    #acquire uLink3050 1 9 3 3
+
+channel Rx20STEN_sp
+
+    # 20.7 GHz Beacon Receiver Stentor
+    # Never installed, satellite launch failed
+    # Channel reference kept for future clarity 
+    title 20.7 GHz Stentor
+    location Sparsholt Cabin
+    rawrange -1000 1000
+    rawunits mV*10
+    realrange -60 -20
+    realunits dB
+    #acquire uLink3050 1 9 3 4
+    acquire null 
+
+channel Rx40STEN_sp
+
+    # 41.4 GHz Beacon Receiver Stentor
+    # Never installed, launch failure
+    # Channel reference kept for clarity 
+    title 41.4 GHz Stentor
+    location Sparsholt Cabin
+    rawrange -1000 1000
+    rawunits mV*10
+    realrange -60 -20
+    realunits dB
+    #acquire uLink3050 1 9 3 5
+    acquire null
+
+Channel R40bt_sp
+
+    # 39.5 GHz radiometer brightness temperature
+    # 
+    title 39.5 GHz Radiometer. Brightness Temp.
+    location Sparsholt Cabin
+    rawrange 0 1000
+    rawunits mV*10
+    realrange 0 300
+    realunits K
+    #acquire uLink3050 1 9 3 6
+    acquire null
+
+channel R40ref_sp
+
+    # 39.5 GHz radiometer reference load temperature
+    #
+    title 39.5 GHz Radiometer. Reference Temp.
+    location Sparsholt Cabin
+    rawrange 0 300
+    rawunits mV*10
+    realrange 10 40
+    realunits deg.C
+    #acquire uLink3050 1 9 3 7
+    acquire null
+
+channel ambient_sp
+
+    # Sparsholt Portakabin ambient temperature.
+    #
+    title Sparsholt Portakabin Ambient Temp.
+    location Sparsholt Cabin
+    rawrange -10 40
+    rawunits mV*10
+    realrange -10 40
+    realunits deg.C
+    #acquire uLink3050 1 9 2 7
+
+channel ws_sp
+
+    # Wind Speed indicator Sparshot cabin roof
+    # Installed ????
+    title Wind Speed to 22/05/2007
+    location Sparsholt Cabin
+    rawrange 0 257
+    rawunits mV*10
+    realrange 0 50 
+    realunits m/s
+    #acquire uLink3050 1 9 2 4
+
+channel wd_sp
+
+    # Wind Direction indicator Sparsholt cabin roof
+    # Installed ????
+    title Wind Direction to 22/05/2007
+    location Sparsholt Cabin
+  #  rawrange -667 667
+  #  rawrange -204 204
+    rawrange -127 127
+    rawunits mV*10
+    realrange -300 300
+    realunits Degrees From South
+    #acquire uLink3050 1 9 2 5
+
+channel NEWRx_ambient_sp
+
+    # Portakabin ambient temperature.
+    # New Temperature Sensor, Installed Aug2002
+    title NEW Portakabin Ambient Temp. to 22/05/2007
+    location Sparsholt Cabin
+    rawrange -100 400
+    rawunits mV*10
+    realrange -10 40
+    realunits deg.C
+    #acquire uLink3051 1 9 4 0
+
+channel test_ch
+
+    # A Test Voltage reference channel
+    #
+    title Test Voltage
+    location Chilbolton Rx Cabin
+    rawrange -1000 1000
+    rawunits mV*10
+    realrange -1000 1000
+    realunits mV*10
+    #acquire ulink3050 1 9 3 0
+    acquire null
+
+channel Rx261_ch
+
+   # A Test Voltage reference channel
+    #
+    title 26.1 Rx1 Voltage
+    location Chilbolton Rx Cabin
+    rawrange -1000 1000
+    rawunits mV*10
+    realrange -1000 1000
+    realunits mV*10
+    #acquire ulink3050 1 9 3 0
+    acquire null 
+
+channel Rx229_ch
+
+    # A Test Voltage reference channel
+    #
+    title 22.9 Rx2 Voltage
+    location Chilbolton Rx Cabin
+    rawrange -1000 1000
+    rawunits mV*10
+    realrange -1000 1000
+    realunits mV*10
+    #acquire ulink3050 1 9 3 1
+    acquire null
+
+channel Rx139_ch
+
+    # A Test Voltage reference channel
+    #
+    title 13.9 Rx1 Voltage
+    location Chilbolton Rx Cabin
+    rawrange -1000 1000
+    rawunits mV*10
+    realrange -1000 1000
+    realunits mV*10
+    #acquire ulink3050 1 9 3 2 
+    acquire null
+
+channel Rx132_ch
+
+   # A Test Voltage reference channel
+    #
+    title 13.5 Rx2 Voltage
+    location Chilbolton Rx Cabin
+    rawrange -1000 1000
+    rawunits mV*10
+    realrange -1000 1000
+    realunits mV*10
+    #acquire ulink3050 1 9 3 3
+    acquire null
+
+channel Rx5456temp_sp
+
+   # A test channel to monitor Rx box temp
+   #
+   title 54/56 Rx Temp
+   location Sparsholt Cabin
+   rawrange -100 700
+   rawunits mV*10
+   realrange -10 70
+   realunits DegC
+   #acquire ulink3051 1 9 4 1 
+
+channel Rx20GBSthree_ch
+
+   # 20.7GHz Global Broadcast Satellite Beacon Receiver
+   # Receiver number three installed March 2003
+   title 20.7GHz GBS (three) to 31/08/2006
+   location Chilbolton Cabin
+   rawrange -1000 1000
+   rawunits mV*10
+   realrange -60 -20
+   realunits dB
+   #acquire ulink3050 1 9 3 5
+   #acquire uLink3050 1 9 2 9
+   acquire null
+
+channel SETRA_Test1_ch
+
+   # SETRA pressure sensor channel scaling test 
+   #  
+   title SETRA pressure sensor scaling test channel 
+   location Chilbolton Cabin
+   rawrange 200 800 
+   rawunits mV*10
+   realrange 860 1040 
+   realunits mbar   
+   #acquire ulink3050 1 9 3 4
+   acquire uLink3050 1 9 2 10 
+   
+
+channel PLO22GHz_ch
+
+   # Test monitor of 22.2GHz radiometer PLO cavity voltage
+   #
+   title 22.2GHz PLO cavity voltage
+   location Chilbolton cabin 22.2GHz radiometer
+   rawrange -1000 1000
+   rawunits mV*10
+   realrange -10 10
+   realunits V
+   #acquire ulink3050 1 9 3 5
+   acquire null
+
+channel PLO28GHz_ch
+
+   # Test monitor of 28.8GHz radiometer PLO cavity voltage
+   #
+   title 28.8GHz PLO cavity voltage
+   location Chilbolton cabin 28.8GHz radiometer
+   rawrange -1000 1000
+   rawunits mV*10
+   realrange -10 10
+   realunits V
+   #acquire ulink3050 1 9 3 6 
+   acquire null
+
+channel Test28GHz_ch
+
+   # Test monitor of 28.8GHz radiometer 
+   #
+   title 28.8GHz Test 
+   location Chilbolton cabin 28.8GHz radiometer
+   rawrange -1000 675 
+   rawunits mV*10
+   realrange 778 0
+   realunits V
+   #acquire ulink3050 1 9 3 3 
+   acquire null
+
+channel pyrCM21_ch
+
+   # Broadband Radiometer CM21
+   # Installed April 2003
+   title Broadband Radiometer CM21 
+   location Chilbolton cabin roof 
+   rawrange -1 1 
+   rawunits V
+   realrange -1000 1000 
+   realunits mV
+   acquire null 
+
+channel pyr_CMP21_ch
+
+   # Broadband Radiometer CMP21
+   # Installed March 2012
+   title Broadband Radiometer CMP21 
+   location Chilbolton cabin roof 
+   rawrange -1 1 
+   rawunits V
+   realrange -1000 1000 
+   realunits mV
+   acquire null 
+
+channel pyrCG4_ch
+
+   # Broadband Radiometer CG4 
+   # Installed April 2003
+   title Broadband Radiometer CG4
+   location Chilbolton cabin roof
+   rawrange -1 1 
+   rawunits V
+   realrange -1000 1000
+   realunits mV
+   acquire null 
+
+channel pyrCP1_ch
+
+   # Broadband Pyrheliometer Radiometer CHP1 
+   # Installed February 2013 
+   title Broadband Pyrheliometer Radiometer CHP1
+   location Chilbolton cabin roof
+   rawrange -1 1 
+   rawunits V
+   realrange -1000 1000
+   realunits mV
+   acquire null 
+
+channel rg011wdrs_ch
+
+   # Sontay WD-RS1 Rain detector
+   # Installed May 2003
+   title WD-RS1 Rain detector
+   location Chilbolton cabin roof
+   rawrange 0 500
+   rawunits mV
+   realrange 0 500
+   realunits mV
+   acquire ulink3050 1 9 3 7 
+
+channel test_sp
+
+   #Test voltage channel for sparsholt
+   #
+   title Sparsholt test voltage
+   location Sparsholt cabin
+   rawrange -1000 1000
+   rawunits mV
+   realrange -1000 1000
+   realunits mV
+   #acquire ulink3050 1 9 3 3
+
+channel rg012drd_ch
+
+   # Vaisala DRD11A Rain detector
+   # Installed July 2003, Voltage output 0-3V
+   title DRD11A Rain detector (voltage)
+   location Chilbolton cabin roof
+   rawrange 0 3000
+   rawunits mV
+   realrange 0 3000
+   realunits mV   
+   acquire ulink3050 1 9 3 7
+
+channel rg002DRD11A_sp
+
+   # Vaisala DRD11A Rain detector
+   # Installed July 2003, Voltage output 0-3V
+   title DRD11A Rain detector (logic) - raingauge site
+   location Sparsholt raingauge site
+   rawrange 0 1
+   rawunits V
+   realrange 0 1
+   realunits V
+   acquire ulink3050 1 9 3 7
+
+channel rg012drd2_ch
+
+   # Vaisala DRD11A Rain detector
+   # Installed July 2003, Rain YES/NO output 
+   title DRD11A Rain detector (yes/no)
+   location Chilbolton cabin roof
+   rawrange 0 5000
+   rawunits mV
+   realrange 0 5000
+   realunits mV 
+   acquire ulink3050 1 9 3 6 
+
+channel temptest1_ch
+
+    #Temperature probe test channel
+    # Probe 1
+    title Temperature test probe 1
+    location Chilbolton Receive Cabin
+    rawrange -100 400
+    rawunits mV*10
+    realrange -10 40
+    realunits deg.C
+    acquire uLink3051 1 9 4 9 
+
+channel temptest2_ch
+
+    #Temperature probe test channel
+    # Probe 2
+    title Temperature test probe 2
+    location Chilbolton Receive Cabin
+    rawrange -100 400
+    rawunits mV*10
+    realrange -10 40
+    realunits deg.C
+    acquire uLink3051 1 9 4 10
+
+channel rg002tb_sp
+
+    # Tipping bucket rain gauge on roof
+    # Installed August 2003 
+    # Moved to raingauge site
+    title Tipping Bucket Gauge - Ground - raingauge site 
+    location Sparsholt Raingauge Site 
+    rawrange 0 3
+    rawunits drops
+    realrange 0 216
+    realunits mm/hr
+    interval 10.0
+    acquire uLink3020 1 9 16 4
+
+channel R22plate_ch
+
+    #22GHz radiometer receiver plate temperature
+    #PT100 pad sensor 
+    title Temperature 22GHz receiver plate 
+    location Chilbolton Receive Cabin
+    rawrange -100 400
+    rawunits mV*10
+    realrange -10 40
+    realunits deg.C
+    #acquire uLink3051 1 9 4 10 
+    acquire null
+
+channel R28plate_ch
+
+    #28GHz radiometer receiver plate temperature
+    #PT100 pad sensor 
+    title Temperature 28GHz receiver plate 
+    location Chilbolton Receive Cabin
+    rawrange -100 400
+    rawunits mV*10
+    realrange -10 40
+    realunits deg.C
+    #acquire uLink3051 1 9 4 11 
+    acquire null
+
+channel R37plate_ch
+
+    #37GHz radiometer receiver plate temperature
+    #PT100 pad sensor 
+    title Temperature 37GHz receiver plate 
+    location Chilbolton Receive Cabin
+    rawrange -100 400
+    rawunits mV*10
+    realrange -10 40
+    realunits deg.C
+    #acquire uLink3051 1 9 4 12
+    acquire null
+
+channel Rx20GBSone_sp
+
+   # 20.7GHz Global Broadcast Satellite Beacon Receiver
+   # Receiver number one installed October 2003
+   title 20.7GHz GBS (one) to 31/08/2006
+   location Sparsholt Cabin
+   rawrange -1000 1000
+   rawunits mV*10
+   realrange -60 -20
+   realunits dB
+   #acquire ulink3050 1 9 3 5
+   acquire null
+
+channel rg011wdrs_sp
+
+   # Sontay WD-RS1 Rain detector
+   # Installed Dec 2003
+   title WD-RS1 Rain detector
+   location Sparsholt cabin roof
+   rawrange 0 500
+   rawunits mV
+   realrange 0 500
+   realunits mV
+   acquire ulink3050 1 9 2 11
+
+channel Rx94signal_ch
+
+   # JB Test channel 94GHz signal
+    # Also used for the testing of ELVA-1 94.63GHz link on 500m range(March2006)
+    title 94 Signal Voltage
+    location Chilbolton Rx Cabin
+    rawrange -1000 1000
+    rawunits mV*10
+    realrange -1000 1000
+    realunits mV*10
+    #acquire ulink3050 1 9 3 0
+    acquire null
+
+channel Rx94phaselock_ch
+
+   # JB Test channel 94GHz phaselock
+    #
+    title 94 Phaselock Voltage
+    location Chilbolton Rx Cabin
+    rawrange -1000 1000
+    rawunits mV*10
+    realrange -1000 1000
+    realunits mV*10
+    #acquire ulink3050 1 9 3 1
+    acquire null
+
+channel Rx94temperature_ch
+
+   # JB Test channel temperature
+    #
+    title 94 Temperature (Voltage)
+    location Chilbolton Rx Cabin
+    rawrange -1000 1000
+    rawunits mV*10
+    realrange -1000 1000
+    realunits mV*10
+    #acquire ulink3050 1 9 3 2
+    acquire null
+
+channel Rx94battery_ch
+
+   # JB Test channel battery
+    #
+    title 94 Battery Voltage
+    location Chilbolton Rx Cabin
+    rawrange -1000 1000
+    rawunits mV*10
+    realrange -1000 1000
+    realunits mV*10
+    #acquire ulink3050 1 9 3 3
+    acquire null
+
+channel distromtest_ch
+
+    # Test Distrometer
+    # On test at Chilbolton
+    title Distrometer Test
+    rawrange -999 999
+    rawunits <null>
+    realrange -999 999
+    realunits <null>
+    acquire ada90 /dev/ttyS0
+
+channel RxMRV_sp
+
+   # MRV Terrascope TS5000
+   # Installed Feb 2006
+   title TS5000 MRV to 15/11/2006
+   location Sparsholt cabin roof
+   rawrange 0 1000
+   rawunits mV*10
+   realrange 0 10
+   realunits V 
+   #acquire ulink3050 1 9 3 6
+
+channel Rx945km_sp
+
+    # 94.63 GHz Receiver 5km Link,
+    # Sparsholt(Rx) - South Wonston water tower(Tx)
+    # LO receiver at Sparsholt, HI at South Wonston.
+    # Only using 94.63GHz channel not 92.??GHz
+    # Installed April 2006
+    title 94 GHz 5km Link to 16/03/2007
+    location Sparsholt Cabin
+    rawrange 0 1000
+    rawunits mV*10
+    realrange 0 10
+    realunits V 
+    #acquire uLink3050 1 9 3 0
+
+channel rh_ch
+
+    #Rotronic MP103A Relative Humidity probe
+    #Installed June 2006, SN 44642 001
+    title Relative Humidity (Rotronic)
+    location Chilbolton 500m range
+    rawrange 0 1000
+    rawunits mV*10
+    realrange 0 100
+    realunits %RH
+    #acquire ulink3050 1 9 3 0
+    acquire uLink3050 1 9 2 7
+
+channel oat2_ch
+
+    # Rotronic MP103A Air Temperature
+    # Installed June 2006, SN 44642 001
+    title Air Temperature (Rotronic)
+    location Chilbolton 500m range
+    rawrange 0 1000
+    rawunits mV*10
+    realrange -40 60
+    realunits deg C
+    #acquire ulink3050 1 9 3 1
+    acquire uLink3050 1 9 2 6
+
+channel QFE2_ch
+
+    # SETRA 278 Barometer
+    # Installed June 2006, SN 2817229 
+    title Station Pressure (SETRA)
+    location Chilbolton receive cabin
+    rawrange 0 1000 
+    rawunits mV*10
+    realrange 800 1100
+    realunits mbar
+    #acquire ulink3050 1 9 3 2
+    acquire uLink3050 1 9 2 8
+
+channel rh_sp
+
+    #Rotronic MP103A Relative Humidity probe
+    #Installed January 2007, SN 44642 002
+    title Relative Humidity (Rotronic) to 22/05/2007
+    location Sparsholt Cabin 
+    rawrange 0 100 
+    rawunits mV*10
+    realrange 0 100
+    realunits %RH
+    #acquire ulink3050 1 9 3 7 
+
+channel oat2_sp
+
+    # Rotronic MP103A Air Temperature
+    # Installed January 2007, SN 44642 002
+    title Air Temperature (Rotronic) to 22/05/2007
+    location Sparsholt Cabin 
+    rawrange 0 100 
+    rawunits mV*10
+    realrange -40 60 
+    realunits deg C
+    #acquire ulink3050 1 9 3 8 
+
+channel QFE2_sp
+
+    # SETRA 278 Barometer
+    # Installed January 2007, SN ??????? 
+    title Station Pressure (SETRA) to 22/05/2007
+    location Sparsholt Cabin 
+    rawrange 0 500 
+    rawunits mV*10
+    realrange 800 1100
+    realunits mbar
+    #acquire ulink3050 1 9 3 9 
+
+channel rgDRD11Aanlg_ch 
+
+    # rain sensor analogue output
+    # at Chilbolton
+    title DRD11a rain sensor analogue output 
+    location Chilbolton Rx Cabin
+    rawrange 0 300 
+    rawunits mV*10
+    realrange 0 300
+    realunits mV*10
+    acquire ulink3050 1 9 2 13
+
+channel oatnew_ch
+
+    # Vaisala Temp/RH sensor instrument
+    # Installed April 2015
+    # SCXI/Analogue BNC Channel 10
+    title Temperature (Vaisala)
+    location Chilbolton Rx Cabin roof
+    rawrange 0 1000
+    rawunits mV*10
+    realrange -40 60
+    realunits deg C
+    #    acquire NISCXI1102C SC1Mod1/ai10
+    acquire uLink3050 1 9 2 11
+
+channel rhnew_ch
+
+    #Vaisala Temp/RH sensor instrument
+    #Installed April 2015
+    # SCXI/Analogue BNC Channel 11
+    title Relative Humidity (Vaisala)
+    location Chilbolton Rx Cabin roof
+    rawrange 0 1000
+    rawunits mV*10
+    realrange 0 100
+    realunits %RH
+    #   acquire NISCXI1102C SC1Mod1/ai11
+    acquire uLink3050 1 9 2 12 
