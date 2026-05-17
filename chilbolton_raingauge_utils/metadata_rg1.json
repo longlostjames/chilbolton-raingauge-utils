@@ -1,8 +1,8 @@
 {
     "source": "NCAS Rain Gauge unit 1",
-    "instrument_manufacturer": "RAL Space",
-    "instrument_model": "Drop Counting Gauge",
-    "instrument_serial_number": "unknown",
+    "instrument_manufacturer": "Rutherford Appleton Laboratory",
+    "instrument_model": "Bespoke",
+    "instrument_serial_number": "BN-013",
     "instrument_software": "None",
     "instrument_software_version": "None",
     "creator_name": "Chris Walden",
@@ -10,7 +10,11 @@
     "creator_url": "https://orcid.org/0000-0002-5718-466X",
     "processing_software_url": "https://github.com/longlostjames/chilbolton-raingauge-utils",
     "processing_software_version": "__VERSION__",
-    "calibration_sensitivity": "not applicable",
+    "measurement_technique": "drop_counting",
+    "measurement_quanta": "0.0037 mm",
+    "collection_throat_diameter": "0.1390 m",
+    "collection_area": "0.01517 m2",
+    "calibration_sensitivity": "0 - 70 mm/hour",
     "calibration_certification_date": "not applicable",
     "calibration_certification_url": "not applicable",
     "sampling_interval": "10.0 second",
@@ -29,8 +33,8 @@
     "deployment_mode": "land",
     "platform_altitude": "84 m",
     "location_keywords": "Chilbolton, Hampshire, England",
-    "comment": "Converted from raw Chilbolton Format5 data.",
-    "longitude": -1.4397,
-    "latitude": 51.1454,
-    "geospatial_bounds": "51.1454N -1.4397E"
+    "comment": " Instrument is at ground level in a turf-wall pit.The time variable gives the time at the end of the acquisition interval. Data logged using a Campbell Scientific CR1000X datalogger S/N 6678.",
+    "longitude": -1.4396,
+    "latitude": 51.1458,
+    "geospatial_bounds": "51.1458N -1.4396E"
 }

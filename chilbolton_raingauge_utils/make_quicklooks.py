@@ -16,27 +16,8 @@ except ImportError:
     __version__ = "unknown"
 
 
-def get_flag_intervals(qc_flag, time_coord, flag_value=2):
-    """Return list of (start_time, end_time) tuples where the specified QC flag value occurs."""
-    flag_mask = (qc_flag == flag_value).values
-    times = pd.to_datetime(time_coord.values)
-    intervals = []
-
-    start = None
-    for i, val in enumerate(flag_mask):
-        if val and start is None:
-            start = times[i]
-        elif not val and start is not None:
-            end = times[i - 1]
-            intervals.append((start, end))
-            start = None
-    if start is not None:
-        intervals.append((start, times[-1]))
-    return intervals
-
-
 def plot_day(ds, nc_filename, outdir):
-    """Plot thickness_of_rainfall_amount with QC flags, shading bad data regions."""
+    """Plot rainfall_rate with QC flags, shading bad data regions."""
     if ds.time.size == 0:
         print(f"Skipping {nc_filename}: no data")
         return
@@ -54,18 +35,20 @@ def plot_day(ds, nc_filename, outdir):
 
     fig, ax = plt.subplots(figsize=(14, 5))
 
-    ax.plot(time, ds['thickness_of_rainfall_amount'], color='steelblue', label='Rainfall amount')
+    ax.plot(time, ds['rainfall_rate'], color='steelblue', label='Rainfall rate')
 
-    # Shade bad data regions (flag=2)
-    if 'qc_flag_thickness_of_rainfall_amount' in ds:
-        bad_intervals = get_flag_intervals(ds['qc_flag_thickness_of_rainfall_amount'], ds['time'], flag_value=2)
-        for i, (start, end) in enumerate(bad_intervals):
-            label = "Bad data (flag=2)" if i == 0 else None
-            ax.axvspan(start, end, color='grey', alpha=0.4, label=label)
+    # Mark QC-flagged points (flag=2) with red crosses
+    if 'qc_flag' in ds:
+        flag_mask = (ds['qc_flag'].values == 2)
+        if flag_mask.any():
+            flagged_time = time[flag_mask]
+            flagged_rate = ds['rainfall_rate'].values[flag_mask]
+            ax.scatter(flagged_time, flagged_rate, color='red', marker='x',
+                       s=60, linewidths=1.5, zorder=5, label='Pump cycle (QC flag=2)')
 
-    ax.set_ylabel('Rainfall amount (mm)')
+    ax.set_ylabel('Rainfall rate (mm hr$^{-1}$)')
     ax.set_xlabel('Time (UTC)')
-    ax.set_title(f'Rainfall amount with QC flags — {date_label}')
+    ax.set_title(f'Rainfall rate with QC flags — {date_label}')
     ax.legend()
     ax.grid(True)
     ax.set_xlim(day_start, day_end)

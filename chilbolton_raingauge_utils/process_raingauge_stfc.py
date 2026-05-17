@@ -21,7 +21,29 @@ DATE_REGEX = r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{6}"
 d = re.compile(DATE_REGEX)
 
 
-def preprocess_data(infile):
+def _drop_unused_count_var(filepath, count_var_name):
+    """Remove whichever of number_of_drops/number_of_tips was not written."""
+    import netCDF4 as _nc4
+    other = 'number_of_tips' if count_var_name == 'number_of_drops' else 'number_of_drops'
+    with _nc4.Dataset(filepath) as src:
+        if other not in src.variables:
+            return
+        tmppath = filepath + '.tmp'
+        with _nc4.Dataset(tmppath, 'w', format=src.file_format) as dst:
+            dst.setncatts(src.__dict__)
+            for name, dim in src.dimensions.items():
+                dst.createDimension(name, None if dim.isunlimited() else len(dim))
+            for vname, var in src.variables.items():
+                if vname == other:
+                    continue
+                fv = var._FillValue if '_FillValue' in var.ncattrs() else False
+                out = dst.createVariable(vname, var.datatype, var.dimensions, fill_value=fv)
+                out.setncatts({k: var.getncattr(k) for k in var.ncattrs() if k != '_FillValue'})
+                out[:] = var[:]
+    os.replace(tmppath, filepath)
+
+
+def preprocess_data(infile, column_name='rg001dc_ch_Tot', column_is_float=False):
     print(infile)
 
     # Step 1: Read the file
@@ -36,18 +58,22 @@ def preprocess_data(infile):
     # Step 3: Skip metadata lines (first 4 lines are metadata)
     data_lines = data[4:]
 
-    # Step 4: Process the data
+    # Step 4: Process the data, skipping any embedded header rows
+    # The CR1000X logger re-inserts header lines after a restart mid-file.
     processed_data = []
     for line in data_lines:
         if line.strip():
             fields = line.strip().split(",")
+            # Skip repeated header rows (first field would be "TIMESTAMP")
+            if fields[0].strip('"') == "TIMESTAMP":
+                continue
             processed_data.append(fields)
 
     # Step 5: Create a Polars DataFrame with the parsed column names
     df = pl.DataFrame(processed_data, schema=column_names, orient="row")
 
     # Step 6: Ensure required columns exist
-    required_columns = ["TIMESTAMP", "rg001dc_ch_Tot"]
+    required_columns = ["TIMESTAMP", column_name]
     for column in required_columns:
         if column not in df.columns:
             print(f"Column '{column}' is missing. Filling with null values.")
@@ -61,7 +87,7 @@ def preprocess_data(infile):
             )
 
     # Step 8: Replace invalid values (e.g., "NAN") with null
-    for column in ["rg001dc_ch_Tot"]:
+    for column in [column_name]:
         if column in df.columns:
             df = df.with_columns(
                 pl.when(pl.col(column) == "NAN")
@@ -73,7 +99,7 @@ def preprocess_data(infile):
     # Step 9: Convert columns to appropriate data types
     type_conversions = {
         "TIMESTAMP": pl.Datetime,
-        "rg001dc_ch_Tot": pl.Float64,
+        column_name: pl.Float64 if column_is_float else pl.Int64,
     }
 
     for column, dtype in type_conversions.items():
@@ -88,15 +114,17 @@ def preprocess_data(infile):
                 df = df.with_columns(pl.col(column).cast(dtype))
 
     # Step 10: Keep only the required columns
-    df = df.select(["TIMESTAMP", "rg001dc_ch_Tot"])
+    df = df.select(["TIMESTAMP", column_name])
 
-    # rg001dc_ch_Tot is already in mm
+    # column_name is the drop count from the logger
 
     return df
 
 
-def process_file(infile, outdir="./", metadata_file="metadata_stfc.json"):
-    df = preprocess_data(infile)
+def process_file(infile, outdir="./", metadata_file="metadata_rg1_stfc.json",
+                 instrument_name="stfc-rain-gauge-1", column_name="rg001dc_ch_Tot",
+                 count_var_name="number_of_drops", column_is_mm=False):
+    df = preprocess_data(infile, column_name=column_name, column_is_float=column_is_mm)
     print(df)
 
     # Check if the year of the last timestamp is one greater than the previous timestamp
@@ -136,7 +164,7 @@ def process_file(infile, outdir="./", metadata_file="metadata_stfc.json"):
     product_version = metadata.get('product_version', 'v1.0').lstrip('v')
 
     # Create NetCDF file (STFC instrument variant)
-    nc = nant.create_netcdf.make_product_netcdf("precipitation", "stfc-rain-gauge-1", date=file_date,
+    nc = nant.create_netcdf.make_product_netcdf("precipitation", instrument_name, date=file_date,
                                  dimension_lengths={"time": len(unix_times)},
                                  file_location=outdir, platform="cao",
                                  product_version=product_version)
@@ -168,8 +196,26 @@ def process_file(infile, outdir="./", metadata_file="metadata_stfc.json"):
         if "valid_max" in nc.variables["year"].ncattrs():
             nc.variables["year"].setncattr("valid_max", max(original_last_timestamp.year, nc.variables["year"].getncattr("valid_max")))
 
-    # Add rainfall data to NetCDF file
-    nant.util.update_variable(nc, "thickness_of_rainfall_amount", df["rg001dc_ch_Tot"])
+    # Add drop count and derived rainfall data to NetCDF file
+    accumulation_per_drop_mm = float(metadata.get("measurement_quanta", "0.00331 mm").split()[0])
+    sampling_interval_s = float(metadata.get("sampling_interval", "10.0 second").split()[0])
+    if column_is_mm:
+        # Column already holds accumulated rainfall in mm (e.g. tipping-bucket
+        # logger outputs tip_count * tip_size_mm directly).
+        # Derive the tip count by rounding to the nearest integer tip, then
+        # recompute rainfall_mm from tip_count * quanta so that
+        # thickness_of_rainfall_amount and rainfall_rate are consistent with
+        # the canonical measurement_quanta value in the metadata.
+        rainfall_mm_raw = df[column_name]
+        number_of_drops = (rainfall_mm_raw / accumulation_per_drop_mm).round(0).cast(pl.Int64)
+        rainfall_mm = number_of_drops * accumulation_per_drop_mm
+    else:
+        number_of_drops = df[column_name]
+        rainfall_mm = number_of_drops * accumulation_per_drop_mm
+    rainfall_rate_mm_hr = rainfall_mm / sampling_interval_s * 3600.0
+    nant.util.update_variable(nc, count_var_name, number_of_drops)
+    nant.util.update_variable(nc, "thickness_of_rainfall_amount", rainfall_mm)
+    nant.util.update_variable(nc, "rainfall_rate", rainfall_rate_mm_hr)
 
     # Add time_coverage_start and time_coverage_end metadata
     nc.setncattr(
@@ -214,6 +260,7 @@ def process_file(infile, outdir="./", metadata_file="metadata_stfc.json"):
     file_name = nc.filepath()
     nc.close()
     nant.remove_empty_variables.main(file_name)
+    _drop_unused_count_var(file_name, count_var_name)
 
 
 def main():

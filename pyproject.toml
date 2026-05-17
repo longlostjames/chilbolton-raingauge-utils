@@ -28,6 +28,7 @@ dependencies = [
     "matplotlib>=3.7.0",
     "cftime>=1.6.0",
     "ncas-amof-netcdf-template>=2.0.0",
+    "flask>=2.0.0",
 ]
 
 [project.optional-dependencies]
@@ -54,12 +55,18 @@ split-cr1000x-data-daily = "chilbolton_raingauge_utils.split_cr1000x_data_daily:
 make-raingauge-quicklooks = "chilbolton_raingauge_utils.make_quicklooks:main"
 extract-raingauge-bad-data-indices = "chilbolton_raingauge_utils.extract_bad_data_indices:main"
 apply-raingauge-bad-data-indices = "chilbolton_raingauge_utils.apply_bad_data_indices:main"
+identify-pump-cycles = "chilbolton_raingauge_utils.identify_pump_cycles:main"
+identify-pump-cycles-web = "chilbolton_raingauge_utils.gauge_qc_web:main"
+apply-raingauge-qc-csv = "chilbolton_raingauge_utils.apply_qc_csv:main"
+compare-gauges-web = "chilbolton_raingauge_utils.compare_gauges_web:main"
+raingauge-click-plots-web = "chilbolton_raingauge_utils.raingauge_click_plots_web:main"
+burette-cal-web = "chilbolton_raingauge_utils.burette_cal_web:main"
 
 [tool.setuptools]
 packages = ["chilbolton_raingauge_utils"]
 
 [tool.setuptools.package-data]
-chilbolton_raingauge_utils = ["*.json", "*.chdb", "*.sh"]
+chilbolton_raingauge_utils = ["*.json", "*.chdb", "*.sh", "amf_cvs_local/**/*.tsv"]
 
 [tool.black]
 line-length = 100

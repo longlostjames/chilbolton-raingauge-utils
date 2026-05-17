@@ -26,7 +26,7 @@ except ImportError:
 RAINGAUGE_CHANNEL = "rg001dc_ch"
 
 
-def preprocess_data_f5(infile):
+def preprocess_data_f5(infile, channel_name=RAINGAUGE_CHANNEL):
     """
     Preprocesses a Format5 data file to extract a Polars DataFrame with
     TIMESTAMP and rg001dc_ch_Tot columns.  Applies the rawrange/realrange
@@ -46,35 +46,23 @@ def preprocess_data_f5(infile):
     chdb_file = os.path.join(script_dir, "f5channelDB.chdb")
     chdb = read_format5_chdb(chdb_file)
 
-    print(chdb[RAINGAUGE_CHANNEL])
+    print(chdb[channel_name])
 
-    # Extract rawrange and realrange for the raingauge channel
-    rg_rawrange = chdb[RAINGAUGE_CHANNEL]["rawrange"]
-    rg_realrange = chdb[RAINGAUGE_CHANNEL]["realrange"]
-
-    def map_to_real_range(raw_col, raw_range, real_range):
-        raw_min, raw_max = raw_range["lower"], raw_range["upper"]
-        real_min, real_max = real_range["lower"], real_range["upper"]
-        return (pl.col(raw_col) - raw_min) / (raw_max - raw_min) * (real_max - real_min) + real_min
-
-    # Ensure the raingauge column is numeric
+    # Ensure the raingauge channel is numeric and keep as drop count (integer)
+    # The rawrange units are 'drops'; conversion to mm is applied in process_file
     df = df.with_columns([
-        pl.col(RAINGAUGE_CHANNEL).cast(pl.Float64)
+        pl.col(channel_name).cast(pl.Int64).alias("number_of_drops")
     ])
 
-    # Apply the calibration mapping
-    df = df.with_columns([
-        map_to_real_range(RAINGAUGE_CHANNEL, rg_rawrange, rg_realrange).alias("rg001dc_ch_Tot")
-    ])
-
-    # Keep only TIMESTAMP and raingauge columns
-    df = df.select(["TIMESTAMP", "rg001dc_ch_Tot"])
+    # Keep only TIMESTAMP and number_of_drops columns
+    df = df.select(["TIMESTAMP", "number_of_drops"])
 
     return df
 
 
-def process_file(infile, outdir="./", metadata_file="metadata_f5.json"):
-    df = preprocess_data_f5(infile)
+def process_file(infile, outdir="./", metadata_file="metadata_rg1_f5.json",
+                 instrument_name="ncas-rain-gauge-1", channel_name=RAINGAUGE_CHANNEL):
+    df = preprocess_data_f5(infile, channel_name=channel_name)
     print(df)
 
     # Check if the year of the last timestamp is one greater than the previous timestamp
@@ -114,7 +102,7 @@ def process_file(infile, outdir="./", metadata_file="metadata_f5.json"):
     product_version = metadata.get('product_version', 'v1.0').lstrip('v')
 
     # Create NetCDF file
-    nc = nant.create_netcdf.make_product_netcdf("precipitation", "ncas-rain-gauge-1", date=file_date,
+    nc = nant.create_netcdf.make_product_netcdf("precipitation", instrument_name, date=file_date,
                                  dimension_lengths={"time": len(unix_times)},
                                  file_location=outdir, platform="cao",
                                  product_version=product_version)
@@ -146,8 +134,14 @@ def process_file(infile, outdir="./", metadata_file="metadata_f5.json"):
         if "valid_max" in nc.variables["year"].ncattrs():
             nc.variables["year"].setncattr("valid_max", max(original_last_timestamp.year, nc.variables["year"].getncattr("valid_max")))
 
-    # Add rainfall data to NetCDF file
-    nant.util.update_variable(nc, "thickness_of_rainfall_amount", df["rg001dc_ch_Tot"])
+    # Add drop count and derived rainfall data to NetCDF file
+    accumulation_per_drop_mm = float(metadata.get("measurement_quanta", "0.00331 mm").split()[0])
+    sampling_interval_s = float(metadata.get("sampling_interval", "10.0 second").split()[0])
+    rainfall_mm = df["number_of_drops"] * accumulation_per_drop_mm
+    rainfall_rate_mm_hr = rainfall_mm / sampling_interval_s * 3600.0
+    nant.util.update_variable(nc, "number_of_drops", df["number_of_drops"])
+    nant.util.update_variable(nc, "thickness_of_rainfall_amount", rainfall_mm)
+    nant.util.update_variable(nc, "rainfall_rate", rainfall_rate_mm_hr)
 
     # Add time_coverage_start and time_coverage_end metadata
     nc.setncattr(
@@ -199,7 +193,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Process RAL Drop Counting Gauge raingauge data from Format5 to netCDF")
     parser.add_argument("infile", type=str, help="Input Format5 file")
     parser.add_argument("-o", "--outdir", type=str, default="./", help="Output directory")
-    parser.add_argument("-m", "--metadata_file", type=str, default="metadata_f5.json", help="Metadata file")
+    parser.add_argument("-m", "--metadata_file", type=str, default="metadata_rg1_f5.json", help="Metadata file")
     args = parser.parse_args()
     process_file(args.infile, outdir=args.outdir, metadata_file=args.metadata_file)
 
@@ -210,6 +204,6 @@ def main():
     parser = argparse.ArgumentParser(description="Process RAL Drop Counting Gauge raingauge data from Format5 to netCDF")
     parser.add_argument("infile", type=str, help="Input Format5 file")
     parser.add_argument("-o", "--outdir", type=str, default="./", help="Output directory")
-    parser.add_argument("-m", "--metadata_file", type=str, default="metadata_f5.json", help="Metadata file")
+    parser.add_argument("-m", "--metadata_file", type=str, default="metadata_rg1_f5.json", help="Metadata file")
     args = parser.parse_args()
     process_file(args.infile, outdir=args.outdir, metadata_file=args.metadata_file)

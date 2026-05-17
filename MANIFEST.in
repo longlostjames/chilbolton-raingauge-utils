@@ -4,3 +4,4 @@ include CHANGELOG.md
 include LICENSE
 include chilbolton_raingauge_utils/*.json
 include chilbolton_raingauge_utils/*.chdb
+recursive-include chilbolton_raingauge_utils/amf_cvs_local *.tsv
