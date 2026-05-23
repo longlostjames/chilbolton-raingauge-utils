@@ -31,6 +31,28 @@ _AMF_CVs_LOCAL = str(Path(__file__).parent / "amf_cvs_local")
 RAINGAUGE_CHANNEL = "rg001dc_ch"
 
 
+def _drop_unused_count_var(filepath, count_var_name):
+    """Remove whichever of number_of_drops/number_of_tips was not written."""
+    import netCDF4 as _nc4
+    other = 'number_of_tips' if count_var_name == 'number_of_drops' else 'number_of_drops'
+    with _nc4.Dataset(filepath) as src:
+        if other not in src.variables:
+            return
+        tmppath = filepath + '.tmp'
+        with _nc4.Dataset(tmppath, 'w', format=src.file_format) as dst:
+            dst.setncatts(src.__dict__)
+            for name, dim in src.dimensions.items():
+                dst.createDimension(name, None if dim.isunlimited() else len(dim))
+            for vname, var in src.variables.items():
+                if vname == other:
+                    continue
+                fv = var._FillValue if '_FillValue' in var.ncattrs() else False
+                out = dst.createVariable(vname, var.datatype, var.dimensions, fill_value=fv)
+                out.setncatts({k: var.getncattr(k) for k in var.ncattrs() if k != '_FillValue'})
+                out[:] = var[:]
+    os.replace(tmppath, filepath)
+
+
 def preprocess_data_f5(infile, channel_name=RAINGAUGE_CHANNEL):
     """
     Preprocesses a Format5 data file to extract a Polars DataFrame with
@@ -193,10 +215,11 @@ def process_file(infile, outdir="./", metadata_file="metadata_rg1_f5.json",
             nc.variables["time"].setncattr("valid_min", float(min(corrected_time_values)))
             nc.variables["time"].setncattr("valid_max", float(max(corrected_time_values)))
 
-    # Close file, remove empty variables
+    # Close file, remove empty variables, strip unused count variable
     file_name = nc.filepath()
     nc.close()
-    nant.remove_empty_variables.main(file_name)
+    nant.remove_empty_variables.main(file_name, tag=_AMF_CVs_TAG, skip_check=True)
+    _drop_unused_count_var(file_name, "number_of_drops")
 
 
 if __name__ == "__main__":

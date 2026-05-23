@@ -272,10 +272,10 @@ def process_file(infile, outdir="./", metadata_file="metadata_rg1_stfc.json",
             nc.variables["time"].setncattr("valid_min", float(min(corrected_time_values)))
             nc.variables["time"].setncattr("valid_max", float(max(corrected_time_values)))
 
-    # Close file, remove empty variables
+    # Close file, remove empty variables, strip unused count variable
     file_name = nc.filepath()
     nc.close()
-    nant.remove_empty_variables.main(file_name)
+    nant.remove_empty_variables.main(file_name, tag=_AMF_CVs_TAG, skip_check=True)
     _drop_unused_count_var(file_name, actual_count_var)
 
 
