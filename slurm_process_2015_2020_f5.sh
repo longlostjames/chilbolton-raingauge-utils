@@ -11,7 +11,8 @@
 
 YEAR=${SLURM_ARRAY_TASK_ID}
 
-source activate cao_3_11
+source /home/users/cjwalden/miniforge3/etc/profile.d/conda.sh
+conda activate cao_3_11
 
 RAW_DATA_BASE=/gws/pw/j07/ncas_obs_vol2/cao/raw_data/legacy/cao-analog-format5_chilbolton/data/long-term/format5
 

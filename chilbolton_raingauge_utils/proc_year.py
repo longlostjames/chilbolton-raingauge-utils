@@ -16,25 +16,25 @@ GAUGE_CONFIGS = {
         "instrument_name": "ncas-rain-gauge-1",
         "column_name": "rg001dc_ch_Tot",
         "metadata_file": "metadata_rg1.json",
-        "output_base": f"{_GWS}/processing/ncas-rain-gauge-1/data/long-term/level1a",
+        "output_base": f"{_GWS}/processing/ncas-rain-gauge-1/data/long-term/level1b",
     },
     2: {
         "instrument_name": "ncas-rain-gauge-2",
         "column_name": "rg006dc_ch_Tot",
         "metadata_file": "metadata_rg2.json",
-        "output_base": f"{_GWS}/processing/ncas-rain-gauge-2/data/long-term/level1a",
+        "output_base": f"{_GWS}/processing/ncas-rain-gauge-2/data/long-term/level1b",
     },
     3: {
         "instrument_name": "ncas-rain-gauge-3",
         "column_name": "rg008dc_ch_Tot",
         "metadata_file": "metadata_rg3.json",
-        "output_base": f"{_GWS}/processing/ncas-rain-gauge-3/data/long-term/level1a",
+        "output_base": f"{_GWS}/processing/ncas-rain-gauge-3/data/long-term/level1b",
     },
     9: {
         "instrument_name": "ncas-rain-gauge-9",
         "column_name": "rg009dc_ch_Tot",
         "metadata_file": "metadata_rg9.json",
-        "output_base": f"{_GWS}/processing/ncas-rain-gauge-9/data/long-term/level1a",
+        "output_base": f"{_GWS}/processing/ncas-rain-gauge-9/data/long-term/level1b",
     },
     5: {
         "instrument_name": "ncas-rain-gauge-5",
@@ -42,7 +42,7 @@ GAUGE_CONFIGS = {
         "count_var_name": "number_of_tips",
         "column_is_mm": True,
         "metadata_file": "metadata_rg5.json",
-        "output_base": f"{_GWS}/processing/ncas-rain-gauge-5/data/long-term/level1a",
+        "output_base": f"{_GWS}/processing/ncas-rain-gauge-5/data/long-term/level1b",
     },
 }
 

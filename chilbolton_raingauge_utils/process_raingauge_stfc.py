@@ -10,12 +10,17 @@ from datetime import datetime
 import cftime
 import re
 import os
+from pathlib import Path
 from datetime import datetime, timezone
 
 try:
     from . import __version__
 except ImportError:
     __version__ = "unknown"
+
+# --- Local AMF CV definitions (avoids GitHub rate-limiting on SLURM) -----------
+_AMF_CVs_TAG = "v2.2.0"
+_AMF_CVs_LOCAL = str(Path(__file__).parent / "amf_cvs_local")
 
 DATE_REGEX = r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{6}"
 d = re.compile(DATE_REGEX)
@@ -163,11 +168,13 @@ def process_file(infile, outdir="./", metadata_file="metadata_rg1_stfc.json",
         metadata = json.load(f)
     product_version = metadata.get('product_version', 'v1.0').lstrip('v')
 
-    # Create NetCDF file (STFC instrument variant)
+    # Create NetCDF file using local AMF CV definitions to avoid GitHub rate-limiting
     nc = nant.create_netcdf.make_product_netcdf("precipitation", instrument_name, date=file_date,
                                  dimension_lengths={"time": len(unix_times)},
                                  file_location=outdir, platform="cao",
-                                 product_version=product_version)
+                                 product_version=product_version,
+                                 use_local_files=_AMF_CVs_LOCAL,
+                                 tag=_AMF_CVs_TAG)
     if isinstance(nc, list):
         print("[WARNING] Unexpectedly got multiple netCDFs returned from nant.create_netcdf.main, just using first file...")
         nc = nc[0]

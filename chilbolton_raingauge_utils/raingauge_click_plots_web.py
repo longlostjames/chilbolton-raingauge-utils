@@ -82,15 +82,35 @@ def read_day(yyyymmdd: str, data_path: str) -> list:
     temp_K, rh_pct, t_met = read_temperature(yyyymmdd, data_path)
 
     # ── First pass: load all gauge data ──────────────────────────────────────
+    # Level subdirectories searched in preference order.
+    # Different processing eras write to different dirs:
+    #   level1a  – original QC'd data
+    #   level1b  – 2020-2024 CR1000X NCAS main processing
+    #   level1   – 2024-2025 CR1000X STFC processing
+    #   level1_f5 – 2015-2020 Format5 processing
+    _LEVEL_DIRS = ('level1a', 'level1b', 'level1', 'level1_f5')
+
     gauge_data = []   # list of {'t', 'rate', 'drops', 'ok'}
     for g in GAUGES:
         inst  = g['instrument']
-        fpath = os.path.join(data_path, inst, 'data', 'long-term', 'level1a',
-                             year, f'{inst}_cao_{yyyymmdd}_precipitation_v1.0.nc')
-        if not os.path.isfile(fpath):
+        fpath = None
+        # File prefix is 'ncas-rain-gauge-X' for older data and
+        # 'stfc-rain-gauge-X' for data after 2024-03-31; use a wildcard.
+        inst_body = '-'.join(inst.split('-')[1:])   # e.g. 'rain-gauge-1'
+        for level in _LEVEL_DIRS:
+            pattern = os.path.join(data_path, inst, 'data', 'long-term', level,
+                                   year, f'*-{inst_body}_cao_{yyyymmdd}_precipitation_*.nc')
+            matches = glob.glob(pattern)
+            if matches:
+                fpath = sorted(matches)[-1]  # highest version if multiple
+                break
+        if fpath is None:
+            print(f'[read_day] No file found for {inst} {yyyymmdd} in any of {_LEVEL_DIRS}',
+                  flush=True)
             gauge_data.append({'t': time_def, 'rate': np.full(n_default, -1.0),
                                'drops': np.zeros(n_default), 'ok': False})
             continue
+        print(f'[read_day] Loading {fpath}', flush=True)
         with nc4.Dataset(fpath, 'r') as ds:
             t     = _hours(ds.variables['time'][:], day_start)
             rate  = np.ma.filled(np.asarray(ds.variables['rainfall_rate'][:]),  fill_value=-1.0)
@@ -413,6 +433,8 @@ _HTML = r"""<!DOCTYPE html>
                    cursor: pointer; font-weight: 600; font-size: 12px; }
   #btn-load    { background: #43a047; color: #fff; }
   #btn-load:hover { opacity:.85; }
+  #btn-prev, #btn-next { background: #1565c0; color: #fff; }
+  #btn-prev:hover, #btn-next:hover { opacity:.85; }
   #btn-write   { background: #fb8c00; color: #fff; }
   #btn-write:hover { opacity:.85; }
   #btn-undo    { background: #8e24aa; color: #fff; }
@@ -437,7 +459,9 @@ _HTML = r"""<!DOCTYPE html>
   <label>Date (yyyymmdd):
     <input type="text" id="inp-date" placeholder="20210601" maxlength="8">
   </label>
+  <button id="btn-prev"  onclick="stepDay(-1)">◄ Prev</button>
   <button id="btn-load"  onclick="loadDay()">Load</button>
+  <button id="btn-next"  onclick="stepDay(+1)">Next ►</button>
   <button id="btn-write" onclick="writeCorr()">Write corrections</button>
   <button id="btn-undo"  onclick="undoLast()">Undo last</button>
   <button id="btn-clear" onclick="clearPending()">Clear pending</button>
@@ -745,6 +769,20 @@ function updatePendingList() {
 }
 
 // ── actions ──────────────────────────────────────────────────────────────────
+function stepDay(delta) {
+  const inp = document.getElementById('inp-date');
+  const d = inp.value.trim();
+  if (!/^\d{8}$/.test(d)) { alert('Enter a valid date first (yyyymmdd)'); return; }
+  const dt = new Date(Date.UTC(
+    parseInt(d.slice(0,4)), parseInt(d.slice(4,6)) - 1, parseInt(d.slice(6,8))));
+  dt.setUTCDate(dt.getUTCDate() + delta);
+  const yyyy = dt.getUTCFullYear();
+  const mm   = String(dt.getUTCMonth() + 1).padStart(2, '0');
+  const dd   = String(dt.getUTCDate()).padStart(2, '0');
+  inp.value = `${yyyy}${mm}${dd}`;
+  loadDay();
+}
+
 async function loadDay() {
   const d = document.getElementById('inp-date').value.trim();
   if (!/^\d{8}$/.test(d)) { alert('Enter date as yyyymmdd'); return; }
@@ -832,6 +870,13 @@ async function applyPaths() {
 }
 
 // ── init ─────────────────────────────────────────────────────────────────────
+// Keyboard shortcuts: [ = prev day, ] = next day (only when not typing in an input)
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+  if (e.key === '[') stepDay(-1);
+  if (e.key === ']') stepDay(+1);
+});
+
 (async () => {
   const r = await fetch('/init');
   const d = await r.json();

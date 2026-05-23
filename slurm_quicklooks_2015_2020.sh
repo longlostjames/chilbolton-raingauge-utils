@@ -11,7 +11,8 @@
 
 YEAR=${SLURM_ARRAY_TASK_ID}
 
-source activate cao_3_11
+source /home/users/cjwalden/miniforge3/etc/profile.d/conda.sh
+conda activate cao_3_11
 
 INPUT_DIR=/gws/pw/j07/ncas_obs_vol2/cao/processing/ncas-rain-gauge-1/data/long-term/level1_f5/
 OUTPUT_DIR=/gws/pw/j07/ncas_obs_vol2/cao/processing/ncas-rain-gauge-1/data/long-term/level1_f5/quicklooks/

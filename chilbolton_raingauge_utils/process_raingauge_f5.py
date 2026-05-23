@@ -12,6 +12,7 @@ from datetime import timezone
 
 import re
 import os
+from pathlib import Path
 from .read_format5_content import read_format5_content
 from .read_format5_header import read_format5_header
 from .read_format5_chdb import read_format5_chdb
@@ -20,6 +21,10 @@ try:
     from . import __version__
 except ImportError:
     __version__ = "unknown"
+
+# --- Local AMF CV definitions (avoids GitHub rate-limiting on SLURM) -----------
+_AMF_CVs_TAG = "v2.2.0"
+_AMF_CVs_LOCAL = str(Path(__file__).parent / "amf_cvs_local")
 
 # NOTE: The Format5 channel name for the raingauge is assumed to be 'rg001dc_ch'.
 # Verify this against the f5channelDB.chdb for the Chilbolton site before processing.
@@ -50,8 +55,10 @@ def preprocess_data_f5(infile, channel_name=RAINGAUGE_CHANNEL):
 
     # Ensure the raingauge channel is numeric and keep as drop count (integer)
     # The rawrange units are 'drops'; conversion to mm is applied in process_file
+    # Channel data arrives as strings (e.g. "0.0") due to np.column_stack coercing
+    # all columns to a common dtype in read_format5_content, so cast via Float64 first.
     df = df.with_columns([
-        pl.col(channel_name).cast(pl.Int64).alias("number_of_drops")
+        pl.col(channel_name).cast(pl.Float64).cast(pl.Int64).alias("number_of_drops")
     ])
 
     # Keep only TIMESTAMP and number_of_drops columns
@@ -101,11 +108,13 @@ def process_file(infile, outdir="./", metadata_file="metadata_rg1_f5.json",
         metadata = json.load(f)
     product_version = metadata.get('product_version', 'v1.0').lstrip('v')
 
-    # Create NetCDF file
+    # Create NetCDF file using local AMF CV definitions to avoid GitHub rate-limiting
     nc = nant.create_netcdf.make_product_netcdf("precipitation", instrument_name, date=file_date,
                                  dimension_lengths={"time": len(unix_times)},
                                  file_location=outdir, platform="cao",
-                                 product_version=product_version)
+                                 product_version=product_version,
+                                 use_local_files=_AMF_CVs_LOCAL,
+                                 tag=_AMF_CVs_TAG)
     if isinstance(nc, list):
         print("[WARNING] Unexpectedly got multiple netCDFs returned from nant.create_netcdf.main, just using first file...")
         nc = nc[0]

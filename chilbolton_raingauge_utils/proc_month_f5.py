@@ -16,31 +16,31 @@ GAUGE_CONFIGS = {
         "instrument_name": "ncas-rain-gauge-1",
         "channel_name": "rg001dc_ch",
         "metadata_file": "metadata_rg1_f5.json",
-        "output_base": f"{_GWS}/processing/ncas-rain-gauge-1/data/long-term/level1_f5",
+        "output_base": f"{_GWS}/processing/ncas-rain-gauge-1/data/long-term/level1b",
     },
     2: {
         "instrument_name": "ncas-rain-gauge-2",
         "channel_name": "rg006dc_ch",
         "metadata_file": "metadata_rg2_f5.json",
-        "output_base": f"{_GWS}/processing/ncas-rain-gauge-2/data/long-term/level1_f5",
+        "output_base": f"{_GWS}/processing/ncas-rain-gauge-2/data/long-term/level1b",
     },
     3: {
         "instrument_name": "ncas-rain-gauge-3",
         "channel_name": "rg008dc_ch",
         "metadata_file": "metadata_rg3_f5.json",
-        "output_base": f"{_GWS}/processing/ncas-rain-gauge-3/data/long-term/level1_f5",
+        "output_base": f"{_GWS}/processing/ncas-rain-gauge-3/data/long-term/level1b",
     },
     9: {
         "instrument_name": "ncas-rain-gauge-9",
         "channel_name": "rg009dc_ch",
         "metadata_file": "metadata_rg9_f5.json",
-        "output_base": f"{_GWS}/processing/ncas-rain-gauge-9/data/long-term/level1_f5",
+        "output_base": f"{_GWS}/processing/ncas-rain-gauge-9/data/long-term/level1b",
     },
     5: {
         "instrument_name": "ncas-rain-gauge-5",
         "channel_name": "rg004tb_ch",
         "metadata_file": "metadata_rg5_f5.json",
-        "output_base": f"{_GWS}/processing/ncas-rain-gauge-5/data/long-term/level1_f5",
+        "output_base": f"{_GWS}/processing/ncas-rain-gauge-5/data/long-term/level1b",
     },
 }
 

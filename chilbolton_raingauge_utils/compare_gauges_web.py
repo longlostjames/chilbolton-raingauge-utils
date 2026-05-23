@@ -155,6 +155,26 @@ _HTML = r"""<!DOCTYPE html>
     #stats-table td { padding: 6px 10px; border: 1px solid #e0e0e0; }
     #stats-table tr:nth-child(even) td { background: #fafafa; }
 
+    /* intercalibration pane */
+    #pane-intercal { flex: 1; display: none; flex-direction: column; overflow: hidden; }
+    #pane-intercal.active { display: flex; }
+    #intercal-controls { flex-shrink: 0; padding: 6px 12px; display: flex; align-items: center;
+                         flex-wrap: wrap; gap: 10px; font-size: 12px; border-bottom: 1px solid #eee; }
+    #intercal-areas  { flex-shrink: 0; padding: 5px 12px; font-size: 12px;
+                        background: #f5f0fb; border-bottom: 1px solid #d1c4e9; }
+    #intercal-quanta { flex-shrink: 0; padding: 5px 12px; font-size: 12px;
+                        background: #f0f4fb; border-bottom: 1px solid #c4d4e9; }
+    #chart-intercal  { flex: 1; min-height: 200px; }
+    #intercal-table  { border-collapse: collapse; font-size: 12px; width: 100%;
+                        flex-shrink: 0; margin-top: 6px; }
+    #intercal-table th { background: #e8eaf6; padding: 5px 10px; text-align: left;
+                          border: 1px solid #c5cae9; }
+    #intercal-table td { padding: 5px 10px; border: 1px solid #e0e0e0; }
+    #intercal-table tr:nth-child(even) td { background: #fafafa; }
+    #btn-intercal { background: #2e7d32; color: #fff; border: none; border-radius: 4px;
+                    padding: 5px 14px; cursor: pointer; font-size: 12px; font-weight: 500; }
+    #btn-intercal:hover { opacity: .85; }
+
     /* xcorr controls */
     #xcorr-controls { display: flex; align-items: center; gap: 10px; flex-shrink: 0;
                        padding: 6px 0; flex-wrap: wrap; font-size: 12px; }
@@ -220,6 +240,7 @@ _HTML = r"""<!DOCTYPE html>
       <div class="tab" onclick="showTab('cumul')">Cumulative</div>
       <div class="tab" onclick="showTab('dmass')">Double mass</div>
       <div class="tab" onclick="showTab('stats')">Statistics</div>
+      <div class="tab" onclick="showTab('intercal')">Intercalibration</div>
       <span id="range-pill">
         <label>Range:</label>
         <input type="datetime-local" id="range-t0" step="60" title="Range start (UTC)">
@@ -325,6 +346,30 @@ _HTML = r"""<!DOCTYPE html>
           <span style="color:#aaa; font-size:13px">Load at least one gauge to see statistics.</span>
         </div>
       </div>
+
+      <!-- intercalibration -->
+      <div class="chart-pane" id="pane-intercal">
+        <div id="intercal-controls">
+          <label>Reference gauge:</label>
+          <select id="intercal-ref"></select>
+          <label>Min accumulation (mm):</label>
+          <input id="intercal-thresh" type="number" value="0.05" min="0" step="0.01" style="width:70px"
+                 title="Only include hours where both gauges accumulate at least this amount">
+          <label>Min hour coverage:</label>
+          <input id="intercal-cov" type="number" value="80" min="10" max="100" step="5" style="width:50px">
+          <label style="margin-left:-6px">%</label>
+          <button id="btn-intercal" onclick="refreshIntercal()">Plot</button>
+          <span id="intercal-status" style="color:#888;font-size:11px"></span>
+        </div>
+        <div id="intercal-areas">
+          <span id="intercal-area-inputs">Load gauges to configure collecting areas.</span>
+        </div>
+        <div id="intercal-quanta">
+          <span id="intercal-quanta-inputs">Load gauges to configure measurement quanta.</span>
+        </div>
+        <div id="chart-intercal"></div>
+        <div id="intercal-table-wrap" style="overflow-x:auto;flex-shrink:0;padding:0 12px 8px"></div>
+      </div>
     </div>
 
   </div>
@@ -398,12 +443,21 @@ async function get(url) {
   const r = await fetch(url); return r.json();
 }
 async function post(url, body) {
-  const r = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
-  return r.json();
+  try {
+    const r = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    if (!r.ok) {
+      let text = '';
+      try { text = await r.text(); } catch(_) {}
+      return { error: `Server error ${r.status}: ${text.slice(0, 400)}` };
+    }
+    return await r.json();
+  } catch (e) {
+    return { error: `Request failed: ${e.message}` };
+  }
 }
 
 // ── tabs ───────────────────────────────────────────────────────────────────
@@ -411,7 +465,7 @@ let currentTab = 'ts';
 function showTab(t) {
   currentTab = t;
   document.querySelectorAll('.tab').forEach((el, i) => {
-    const tabs = ['ts', 'scatter', 'xcorr', 'cumul', 'dmass', 'stats'];
+    const tabs = ['ts', 'scatter', 'xcorr', 'cumul', 'dmass', 'stats', 'intercal'];
     el.classList.toggle('active', tabs[i] === t);
   });
   document.getElementById('pane-ts').classList.toggle('active', t === 'ts');
@@ -420,10 +474,12 @@ function showTab(t) {
   document.getElementById('pane-cumul').classList.toggle('active', t === 'cumul');
   document.getElementById('pane-dmass').classList.toggle('active', t === 'dmass');
   document.getElementById('stats-pane').classList.toggle('active', t === 'stats');
+  document.getElementById('pane-intercal').classList.toggle('active', t === 'intercal');
   if (t === 'ts') refreshTS();
   if (t === 'cumul') refreshCumul();
   if (t === 'dmass') refreshDMass();
   if (t === 'stats') refreshStats();
+  if (t === 'intercal') { _buildIntercalAreas(); _buildIntercalQuanta(); _updateIntercalRef(); }
   if (t === 'xcorr' && xcorrInitialised) runXcorr();
 }
 
@@ -491,6 +547,7 @@ function removeGauge(i) {
   if (currentTab === 'cumul') refreshCumul();
   if (currentTab === 'dmass') refreshDMass();
   if (currentTab === 'stats') refreshStats();
+  if (currentTab === 'intercal') { _buildIntercalAreas(); _buildIntercalQuanta(); _updateIntercalRef(); }
 }
 
 let currentPath = '';
@@ -561,6 +618,7 @@ async function loadDir() {
     rainfall_rate: d.rainfall_rate,
     quanta:    d.quanta    ?? null,
     technique: d.technique ?? null,
+    area_cm2:  d.area_cm2  ?? null,
   };
   status.textContent = `Loaded ${d.file_count} files`;
   for (let i = 1; i <= MAX_GAUGES; i++) {
@@ -574,6 +632,7 @@ async function loadDir() {
   if (currentTab === 'cumul') refreshCumul();
   if (currentTab === 'dmass') refreshDMass();
   if (currentTab === 'stats') refreshStats();
+  if (currentTab === 'intercal') { _buildIntercalAreas(); _buildIntercalQuanta(); _updateIntercalRef(); }
 }
 
 // ── load NetCDF file into active slot ─────────────────────────────────────
@@ -587,6 +646,7 @@ async function loadFile(path) {
     rainfall_rate: d.rainfall_rate,
     quanta:    d.quanta    ?? null,
     technique: d.technique ?? null,
+    area_cm2:  d.area_cm2  ?? null,
   };
   // Auto-advance to next empty slot
   for (let i = 1; i <= MAX_GAUGES; i++) {
@@ -600,6 +660,7 @@ async function loadFile(path) {
   if (currentTab === 'cumul') refreshCumul();
   if (currentTab === 'dmass') refreshDMass();
   if (currentTab === 'stats') refreshStats();
+  if (currentTab === 'intercal') { _buildIntercalAreas(); _buildIntercalQuanta(); _updateIntercalRef(); }
 }
 
 // ── time-series chart ──────────────────────────────────────────────────────
@@ -1226,6 +1287,294 @@ async function runXcorr() {
 }
 
 // ── statistics panel ───────────────────────────────────────────────────────
+// ── intercalibration analysis ──────────────────────────────────────────────
+
+// Compute hourly accumulations from a loaded gauge.
+// Returns a Map: 'YYYY-MM-DDTHH' → { accum_mm, n_valid }
+// Hours with fewer than minCovFrac × expected samples are omitted.
+function _hourlyAccum(g, minCovFrac) {
+  const times = g.times;
+  const rates = g.rainfall_rate;
+  const n = times.length;
+  if (n < 2) return new Map();
+
+  // Estimate dt in hours from first 200 consecutive pairs
+  let dtSum = 0, dtN = 0;
+  for (let i = 1; i < Math.min(n, 200); i++) {
+    const dt = (Date.parse(times[i] + 'Z') - Date.parse(times[i-1] + 'Z')) / 3_600_000;
+    if (dt > 0 && dt < 2) { dtSum += dt; dtN++; }
+  }
+  const dt_hr = dtN > 0 ? dtSum / dtN : 1/60;       // fallback: 1-min data
+  const expected = Math.round(1 / dt_hr);             // samples per hour
+
+  const bins = new Map();
+  for (let i = 0; i < n; i++) {
+    const r = rates[i];
+    if (r === null || !isFinite(r) || r < 0) continue;
+    const key = times[i].slice(0, 13);               // 'YYYY-MM-DDTHH'
+    if (!bins.has(key)) bins.set(key, { sum: 0, n: 0 });
+    const b = bins.get(key);
+    b.sum += r;  b.n++;
+  }
+  const result = new Map();
+  for (const [key, b] of bins) {
+    if (b.n / expected >= minCovFrac)
+      result.set(key, { accum_mm: b.sum * dt_hr });  // mm = (mm/hr) × dt_hr
+  }
+  return result;
+}
+
+// Ordinary least-squares regression: through-origin and full (with intercept).
+// Returns {factor_o, rmsd_o, r2_o, factor_f, offset_f, rmsd_f, r2_f, n} or null if n < 3.
+function _regressOLS(x, y) {
+  const n = x.length;
+  if (n < 3) return null;
+  let sxy = 0, sxx = 0, sx = 0, sy = 0, syy = 0;
+  for (let i = 0; i < n; i++) { sxy += x[i]*y[i]; sxx += x[i]*x[i]; sx += x[i]; sy += y[i]; syy += y[i]*y[i]; }
+  const factor_o = sxy / sxx;
+  let ss_res_o = 0;
+  for (let i = 0; i < n; i++) ss_res_o += (y[i] - factor_o*x[i])**2;
+  const rmsd_o = Math.sqrt(ss_res_o / n);
+  const ss_tot = syy - sy*sy/n;           // total sum of squares about the mean
+  const r2_o = ss_tot > 0 ? 1 - ss_res_o / ss_tot : NaN;
+
+  const xbar = sx/n, ybar = sy/n;
+  let sxx_c = 0, sxy_c = 0;
+  for (let i = 0; i < n; i++) { sxx_c += (x[i]-xbar)**2; sxy_c += (x[i]-xbar)*(y[i]-ybar); }
+  const factor_f = sxx_c > 1e-12 ? sxy_c / sxx_c : 0;
+  const offset_f = ybar - factor_f * xbar;
+  let ss_res_f = 0;
+  for (let i = 0; i < n; i++) ss_res_f += (y[i] - (factor_f*x[i] + offset_f))**2;
+  const rmsd_f = Math.sqrt(ss_res_f / n);
+  const r2_f = ss_tot > 0 ? 1 - ss_res_f / ss_tot : NaN;
+  return { factor_o, rmsd_o, r2_o, factor_f, offset_f, rmsd_f, r2_f, n };
+}
+
+// Rebuild the per-gauge area input row.
+function _buildIntercalAreas() {
+  const loaded = gauges.map((g, i) => g ? { ...g, color: SLOT_COLORS[i], idx: i } : null).filter(Boolean);
+  const container = document.getElementById('intercal-area-inputs');
+  if (!loaded.length) { container.innerHTML = 'Load gauges to configure collecting areas.'; return; }
+  // Preserve existing values when rebuilding
+  const prev = {};
+  for (const g of loaded) {
+    const el = document.getElementById(`area-${g.idx}`);
+    if (el) prev[g.idx] = el.value;
+  }
+  let html = '<strong>Collecting area per gauge (cm²):</strong>&emsp;';
+  for (const g of loaded) {
+    const val = prev[g.idx] ?? (g.area_cm2 != null ? g.area_cm2 : 200);
+    html += `<label style="margin-right:16px">
+      <span style="display:inline-block;width:10px;height:10px;border-radius:50%;
+        background:${g.color};vertical-align:middle;margin-right:4px"></span>${g.label}:&nbsp;
+      <input type="number" id="area-${g.idx}" value="${val}" min="1" step="1" style="width:70px">
+    </label>`;
+  }
+  container.innerHTML = html;
+}
+
+function _parseNcQuanta(g) {
+  // Parse measurement_quanta from gauge object (may be a float or string like "0.1 mm")
+  if (g.quanta == null) return null;
+  const v = parseFloat(String(g.quanta).split(/\s/)[0]);
+  return isFinite(v) && v > 0 ? v : null;
+}
+
+function _buildIntercalQuanta() {
+  const loaded = gauges.map((g, i) => g ? { ...g, color: SLOT_COLORS[i], idx: i } : null).filter(Boolean);
+  const container = document.getElementById('intercal-quanta-inputs');
+  if (!loaded.length) { container.innerHTML = 'Load gauges to configure measurement quanta.'; return; }
+  // Preserve existing values when rebuilding
+  const prev = {};
+  for (const g of loaded) {
+    const el = document.getElementById(`quanta-${g.idx}`);
+    if (el) prev[g.idx] = el.value;
+  }
+  let html = '<strong>Measurement quanta per gauge (mm/drop) — NC file value used for correction:</strong>&emsp;';
+  for (const g of loaded) {
+    const ncVal = _parseNcQuanta(g);
+    const val = prev[g.idx] ?? (ncVal != null ? ncVal : '');
+    const title = g.quanta != null ? `NC file value: ${g.quanta}` : 'NC file value not found';
+    html += `<label style="margin-right:16px">
+      <span style="display:inline-block;width:10px;height:10px;border-radius:50%;
+        background:${g.color};vertical-align:middle;margin-right:4px"></span>${g.label}:&nbsp;
+      <input type="number" id="quanta-${g.idx}" value="${val}" min="0" step="any" style="width:80px"
+             title="${title}">
+    </label>`;
+  }
+  container.innerHTML = html;
+}
+
+// Rebuild the reference gauge selector, keeping existing selection if possible.
+function _updateIntercalRef() {
+  const loaded = gauges.map((g, i) => g ? { ...g, idx: i } : null).filter(Boolean);
+  const sel = document.getElementById('intercal-ref');
+  const cur = sel.value;
+  sel.innerHTML = loaded.map(g => `<option value="${g.idx}">${g.label}</option>`).join('');
+  if (loaded.some(g => String(g.idx) === cur)) sel.value = cur;
+}
+
+// Main intercalibration render: hourly accumulations → scatter + regression.
+function refreshIntercal() {
+  const loaded = gauges.map((g, i) => g ? { ...g, color: SLOT_COLORS[i], idx: i } : null).filter(Boolean);
+  const status  = document.getElementById('intercal-status');
+  const chartDiv = document.getElementById('chart-intercal');
+  const tableWrap = document.getElementById('intercal-table-wrap');
+  if (loaded.length < 2) {
+    status.textContent = 'Load at least 2 gauges.';
+    Plotly.purge(chartDiv);
+    tableWrap.innerHTML = '';
+    return;
+  }
+
+  _buildIntercalAreas();
+  _buildIntercalQuanta();
+  _updateIntercalRef();
+
+  const refIdx  = parseInt(document.getElementById('intercal-ref').value);
+  const thresh  = parseFloat(document.getElementById('intercal-thresh').value) || 0.05;
+  const minCov  = (parseFloat(document.getElementById('intercal-cov').value) || 80) / 100;
+  const refG    = gauges[refIdx];
+  if (!refG) { status.textContent = 'Reference gauge not loaded.'; return; }
+  const areaRef = parseFloat(document.getElementById(`area-${refIdx}`)?.value) || 200;
+
+  // Quanta correction factor for the reference gauge
+  const ncQuantaRef  = _parseNcQuanta(refG);
+  const entQuantaRef = parseFloat(document.getElementById(`quanta-${refIdx}`)?.value);
+  const corrRef = (isFinite(entQuantaRef) && entQuantaRef > 0 && ncQuantaRef)
+                    ? entQuantaRef / ncQuantaRef : 1.0;
+
+  // Hourly accumulations for every loaded gauge
+  const hourlyMaps = {};
+  for (const g of loaded) hourlyMaps[g.idx] = _hourlyAccum(g, minCov);
+  const refHours = hourlyMaps[refIdx];
+
+  const comps = loaded.filter(g => g.idx !== refIdx);
+  if (!comps.length) { status.textContent = 'Need at least one other gauge.'; return; }
+
+  const nCols  = comps.length;
+  const colW   = 1 / nCols;
+  const colGap = 0.04;
+  const traces  = [];
+  const annotations = [];
+  const layout  = { margin: { l: 60, r: 20, t: 50, b: 60 }, showlegend: true,
+                    legend: { font: { size: 10 }, bgcolor: 'rgba(255,255,255,0.7)' } };
+
+  let totalPts = 0;
+  let tableRows = '';
+
+  for (let ci = 0; ci < comps.length; ci++) {
+    const cg     = comps[ci];
+    const areaC  = parseFloat(document.getElementById(`area-${cg.idx}`)?.value) || 200;
+    const areaRatio = areaC / areaRef;  // expected factor if only the area differs
+
+    // Quanta correction factor for this comparison gauge
+    const ncQuantaCG  = _parseNcQuanta(cg);
+    const entQuantaCG = parseFloat(document.getElementById(`quanta-${cg.idx}`)?.value);
+    const corrCG = (isFinite(entQuantaCG) && entQuantaCG > 0 && ncQuantaCG)
+                     ? entQuantaCG / ncQuantaCG : 1.0;
+
+    const cHours = hourlyMaps[cg.idx];
+
+    // Pair up common hours above accumulation threshold (compare in mm, no area scaling)
+    // Apply quanta correction factors before regression
+    const xs = [], ys = [];
+    for (const [hr, rv] of refHours) {
+      if (!cHours.has(hr)) continue;
+      const cv = cHours.get(hr);
+      if (rv.accum_mm < thresh || cv.accum_mm < thresh) continue;
+      xs.push(rv.accum_mm * corrRef);
+      ys.push(cv.accum_mm * corrCG);
+    }
+    totalPts += xs.length;
+    const reg = _regressOLS(xs, ys);
+
+    const xax = ci === 0 ? 'x'  : `x${ci+1}`;
+    const yax = ci === 0 ? 'y'  : `y${ci+1}`;
+    const x0  = ci * colW + (ci > 0 ? colGap/2 : 0);
+    const x1  = (ci+1)*colW - (ci < nCols-1 ? colGap/2 : 0);
+
+    // Scatter points
+    traces.push({ x: xs, y: ys, mode: 'markers',
+      marker: { color: cg.color, size: 5, opacity: 0.55 },
+      name: cg.label, xaxis: xax, yaxis: yax,
+      hovertemplate: `${refG.label}: %{x:.4f} mm<br>${cg.label}: %{y:.4f} mm<extra></extra>` });
+
+    if (reg) {
+      const xmax = xs.reduce((a, b) => b > a ? b : a, 0) * 1.08;
+      // 1:1 reference line (grey)
+      traces.push({ x: [0, xmax], y: [0, xmax], mode: 'lines',
+        line: { color: '#9e9e9e', width: 1.2 }, xaxis: xax, yaxis: yax, hoverinfo: 'skip',
+        name: '1:1 line', showlegend: ci === 0 });
+      // Through-origin fit (red)
+      traces.push({ x: [0, xmax], y: [0, reg.factor_o * xmax], mode: 'lines',
+        line: { color: '#c62828', width: 1.8 }, xaxis: xax, yaxis: yax, hoverinfo: 'skip',
+        name: 'Origin fit (red)', showlegend: ci === 0 });
+      // Full OLS (green dashed)
+      traces.push({ x: [0, xmax], y: [reg.offset_f, reg.factor_f*xmax + reg.offset_f], mode: 'lines',
+        line: { color: '#2e7d32', width: 1.8, dash: 'dash' }, xaxis: xax, yaxis: yax, hoverinfo: 'skip',
+        name: 'OLS fit (green)', showlegend: ci === 0 });
+
+      // Per-panel annotation with fit equations and R²
+      const xref_d = ci === 0 ? 'x domain'  : `x${ci+1} domain`;
+      const yref_d = ci === 0 ? 'y domain'  : `y${ci+1} domain`;
+      const offSign = reg.offset_f >= 0 ? '+' : '−';
+      const offAbs  = Math.abs(reg.offset_f).toFixed(4);
+      annotations.push({
+        xref: xref_d, yref: yref_d, x: 0.03, y: 0.97,
+        xanchor: 'left', yanchor: 'top', showarrow: false,
+        align: 'left', bgcolor: 'rgba(255,255,255,0.75)', borderpad: 3,
+        font: { size: 10 },
+        text: `<b>${cg.label} vs ${refG.label}</b><br>`
+            + `<span style="color:#c62828">y = ${reg.factor_o.toFixed(4)} x</span>`
+            + `  R² = ${reg.r2_o.toFixed(4)}<br>`
+            + `<span style="color:#2e7d32">y = ${reg.factor_f.toFixed(4)} x ${offSign} ${offAbs}</span>`
+            + `  R² = ${reg.r2_f.toFixed(4)}<br>`
+            + `N = ${reg.n}`,
+      });
+
+      tableRows += `<tr>
+        <td><span style="display:inline-block;width:10px;height:10px;border-radius:50%;
+          background:${cg.color};margin-right:5px"></span>${cg.label}</td>
+        <td>${reg.n}</td>
+        <td>${areaRef}</td><td>${areaC}</td>
+        <td><strong>${reg.factor_o.toFixed(5)}</strong></td>
+        <td>${reg.r2_o.toFixed(4)}</td>
+        <td>${reg.rmsd_o.toFixed(4)}</td>
+        <td>${reg.factor_f.toFixed(5)}</td>
+        <td>${reg.offset_f.toFixed(4)}</td>
+        <td>${reg.r2_f.toFixed(4)}</td>
+        <td>${reg.rmsd_f.toFixed(4)}</td>
+      </tr>`;
+    }
+
+    layout[ci === 0 ? 'xaxis'  : `xaxis${ci+1}`]  = {
+      domain: [x0, x1], title: { text: `${refG.label}  (Hourly accumulation, mm)` },
+      zeroline: true, anchor: yax };
+    layout[ci === 0 ? 'yaxis'  : `yaxis${ci+1}`]  = {
+      title: { text: ci === 0 ? 'Hourly accumulation (mm)' : '' },
+      zeroline: true, anchor: xax,
+      matches: 'y',                          // share y-range across all subplots
+      showticklabels: ci === 0,              // tick labels only on leftmost panel
+    };
+
+  }
+
+  layout.annotations = annotations;
+  layout.height = Math.max(chartDiv.clientHeight || 400, 320);
+  Plotly.newPlot(chartDiv, traces, layout, { responsive: true, displayModeBar: false });
+
+  status.textContent = `${totalPts} hourly pairs across ${comps.length} comparison(s).`;
+
+  tableWrap.innerHTML = tableRows
+    ? `<table id="intercal-table"><tr>
+        <th>Gauge</th><th>N hours</th><th>Area ref (cm²)</th><th>Area gauge (cm²)</th>
+        <th>Factor (origin, red)</th><th>R² (origin)</th><th>RMSD (origin)</th>
+        <th>Factor (OLS, green)</th><th>Offset (OLS)</th><th>R² (OLS)</th><th>RMSD (OLS)</th>
+      </tr>${tableRows}</table>`
+    : '<span style="color:#888;font-size:12px">Too few paired hours for regression (need ≥ 3).</span>';
+}
+
 function refreshStats() {
   const allLoaded = gauges.map((g, i) => g ? { ...g, color: SLOT_COLORS[i] } : null).filter(Boolean);
   const content = document.getElementById('stats-content');
@@ -1315,6 +1664,68 @@ document.getElementById('range-t1').addEventListener('change', _onRangeInputChan
 """
 
 # ---------------------------------------------------------------------------
+# JSON helpers
+# ---------------------------------------------------------------------------
+
+def _nan_to_null(arr):
+    """Convert a float array to a JSON-safe list, replacing NaN/Inf with null."""
+    return [None if (v is None or not np.isfinite(v)) else float(v) for v in arr]
+
+
+# ---------------------------------------------------------------------------
+# NetCDF file reader (shared by /load and /load_dir)
+# ---------------------------------------------------------------------------
+
+def _read_one_nc_file(nc_path):
+    """Read a single precipitation NetCDF file.
+
+    Returns (unix, rr, quanta, technique) where:
+      unix      – float64 array of POSIX timestamps
+      rr        – float64 array of rainfall rate (mm hr⁻¹), NaN where missing
+      quanta    – measurement_quanta global attribute or None
+      technique – measurement_technique string or None
+
+    Raises ValueError if no recognised rainfall variable is found.
+    """
+    with nc4.Dataset(str(nc_path)) as ds:
+        unix = ds.variables['time'][:].data.copy()
+        quanta = getattr(ds, 'measurement_quanta', None)
+        technique = getattr(ds, 'measurement_technique', None)
+        if technique is None:
+            if 'number_of_tips' in ds.variables:
+                technique = 'tipping_bucket'
+            elif 'number_of_drops' in ds.variables:
+                technique = 'drop_counting'
+        # Parse collection_area (stored as e.g. "0.01517 m2") → cm²
+        area_cm2 = None
+        raw_area = getattr(ds, 'collection_area', None)
+        if raw_area is not None:
+            try:
+                area_cm2 = round(float(str(raw_area).split()[0]) * 1e4, 2)
+            except (ValueError, IndexError):
+                pass
+        if 'rainfall_rate' in ds.variables:
+            rr = ds.variables['rainfall_rate'][:].data.astype(float).copy()
+            fill = getattr(ds.variables['rainfall_rate'], '_FillValue', None)
+            if fill is not None:
+                rr[rr == fill] = np.nan
+        elif 'thickness_of_rainfall_amount' in ds.variables:
+            v = ds.variables['thickness_of_rainfall_amount']
+            rr = v[:].data.astype(float).copy()
+            fill = getattr(v, '_FillValue', None)
+            if fill is not None:
+                rr[rr == fill] = np.nan
+            rr *= 360.0  # mm/10s → mm/hr
+        elif 'number_of_drops' in ds.variables:
+            rr = ds.variables['number_of_drops'][:].data.astype(float).copy()
+        else:
+            raise ValueError(
+                'No rainfall_rate, thickness_of_rainfall_amount, or number_of_drops variable found'
+            )
+    return unix, rr, quanta, technique, area_cm2
+
+
+# ---------------------------------------------------------------------------
 # Flask application
 # ---------------------------------------------------------------------------
 
@@ -1327,7 +1738,7 @@ def _make_app(start_dir: str):
         sys.exit(1)
 
     app = Flask(__name__)
-    logging.getLogger('werkzeug').setLevel(logging.ERROR)
+    logging.getLogger('werkzeug').setLevel(logging.INFO)
 
     @app.route('/')
     def index():
@@ -1384,39 +1795,12 @@ def _make_app(start_dir: str):
         if not p.is_file():
             return jsonify({'error': f'File not found: {path}'})
         try:
-            with nc4.Dataset(str(p)) as nc:
-                unix = nc.variables['time'][:].data.copy()
-                quanta = getattr(nc, 'measurement_quanta', None)
-                technique = getattr(nc, 'measurement_technique', None)
-                if technique is None:
-                    if 'number_of_tips' in nc.variables:
-                        technique = 'tipping_bucket'
-                    elif 'number_of_drops' in nc.variables:
-                        technique = 'drop_counting'
-                if 'rainfall_rate' in nc.variables:
-                    rr = nc.variables['rainfall_rate'][:].data.astype(float).copy()
-                    # Replace fill/missing values with NaN
-                    fill = getattr(nc.variables['rainfall_rate'], '_FillValue', None)
-                    if fill is not None:
-                        rr[rr == fill] = np.nan
-                elif 'thickness_of_rainfall_amount' in nc.variables:
-                    # Tipping-bucket gauge: mm per 10-second sample → mm hr⁻¹
-                    v = nc.variables['thickness_of_rainfall_amount']
-                    rr = v[:].data.astype(float).copy()
-                    fill = getattr(v, '_FillValue', None)
-                    if fill is not None:
-                        rr[rr == fill] = np.nan
-                    rr *= 360.0  # mm/10s → mm/hr
-                elif 'number_of_drops' in nc.variables:
-                    drops = nc.variables['number_of_drops'][:].data.astype(float).copy()
-                    rr = drops
-                else:
-                    return jsonify({'error': 'No rainfall_rate, thickness_of_rainfall_amount, or number_of_drops variable found'})
+            unix, rr, quanta, technique, area_cm2 = _read_one_nc_file(p)
         except Exception as exc:
             return jsonify({'error': str(exc)})
 
         times_iso = pd.to_datetime(unix, unit='s', utc=True).strftime('%Y-%m-%dT%H:%M:%S').tolist()
-        label = p.stem  # e.g. ncas-rain-gauge-1_cao_20240315_rainfall-rate_1min_v1
+        label = p.stem
 
         _gauges[slot] = {
             'label': label,
@@ -1425,7 +1809,8 @@ def _make_app(start_dir: str):
             'quanta': quanta,
             'technique': technique,
         }
-        return jsonify({'label': label, 'times': times_iso, 'rainfall_rate': rr.tolist(), 'quanta': quanta, 'technique': technique})
+        return jsonify({'label': label, 'times': times_iso, 'rainfall_rate': _nan_to_null(rr),
+                        'quanta': quanta, 'technique': technique, 'area_cm2': area_cm2})
 
     @app.route('/load_dir', methods=['POST'])
     def load_dir():
@@ -1442,30 +1827,19 @@ def _make_app(start_dir: str):
             return jsonify({'error': f'No .nc files found under {path}'})
 
         all_unix, all_rr = [], []
+        quanta, technique, area_cm2 = None, None, None
         failed = 0
         for nc_path in nc_files:
             try:
-                with nc4.Dataset(str(nc_path)) as nc:
-                    unix = nc.variables['time'][:].data.copy()
-                    if 'rainfall_rate' in nc.variables:
-                        rr = nc.variables['rainfall_rate'][:].data.astype(float).copy()
-                        fill = getattr(nc.variables['rainfall_rate'], '_FillValue', None)
-                        if fill is not None:
-                            rr[rr == fill] = np.nan
-                    elif 'thickness_of_rainfall_amount' in nc.variables:
-                        v = nc.variables['thickness_of_rainfall_amount']
-                        rr = v[:].data.astype(float).copy()
-                        fill = getattr(v, '_FillValue', None)
-                        if fill is not None:
-                            rr[rr == fill] = np.nan
-                        rr *= 360.0  # mm/10s → mm/hr
-                    elif 'number_of_drops' in nc.variables:
-                        rr = nc.variables['number_of_drops'][:].data.astype(float).copy()
-                    else:
-                        failed += 1
-                        continue
+                unix, rr, q, t, a = _read_one_nc_file(nc_path)
                 all_unix.append(unix)
                 all_rr.append(rr)
+                if quanta is None:
+                    quanta = q
+                if technique is None:
+                    technique = t
+                if area_cm2 is None:
+                    area_cm2 = a
             except Exception:
                 failed += 1
 
@@ -1483,32 +1857,10 @@ def _make_app(start_dir: str):
         unix_cat = unix_cat[unique]
         rr_cat   = rr_cat[unique]
 
-        times_iso = pd.to_datetime(unix_cat, unit='s', utc=True).strftime('%Y-%m-%dT%H:%M:%S').tolist()
-        # Label: extract the instrument name from the first NC file stem
-        # (e.g. "ncas-rain-gauge-1_cao_20210315_..." → "ncas-rain-gauge-1").
-        # Fall back to the directory name if the stem has no underscores.
         first_stem = nc_files[0].stem
         label = first_stem.split('_')[0] if '_' in first_stem else p.name
-        # Use measurement_quanta and measurement_technique from first successfully-read file
-        quanta = None
-        technique = None
-        for nc_path in nc_files:
-            try:
-                with nc4.Dataset(str(nc_path)) as nc:
-                    if quanta is None:
-                        quanta = getattr(nc, 'measurement_quanta', None)
-                    if technique is None:
-                        technique = getattr(nc, 'measurement_technique', None)
-                        if technique is None:
-                            if 'number_of_tips' in nc.variables:
-                                technique = 'tipping_bucket'
-                            elif 'number_of_drops' in nc.variables:
-                                technique = 'drop_counting'
-                if quanta is not None and technique is not None:
-                    break
-            except Exception:
-                pass
 
+        # Store full-resolution data server-side for analytics
         _gauges[slot] = {
             'label': label,
             'unix':  unix_cat,
@@ -1516,13 +1868,22 @@ def _make_app(start_dir: str):
             'quanta': quanta,
             'technique': technique,
         }
+
+        # Downsample to 1-minute for the browser response to keep JSON small
+        # (~50 MB of 10-second data → ~8 MB of 1-minute data for a full year)
+        ser = pd.Series(rr_cat, index=pd.to_datetime(unix_cat, unit='s', utc=True))
+        ser_min = ser.resample('1min').mean()
+        times_iso = ser_min.index.strftime('%Y-%m-%dT%H:%M:%S').tolist()
+        rr_display = _nan_to_null(ser_min.to_numpy())
+
         return jsonify({
             'label': label,
             'times': times_iso,
             'quanta': quanta,
             'technique': technique,
-            'rainfall_rate': rr_cat.tolist(),
+            'rainfall_rate': rr_display,
             'file_count': len(all_unix),
+            'area_cm2': area_cm2,
         })
 
     @app.route('/xcorr', methods=['POST'])

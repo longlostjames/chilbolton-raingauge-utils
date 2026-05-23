@@ -16,7 +16,7 @@ from pylab import date2num
 import matplotlib.pyplot as plt
 #import matplotlib.patches as patches
 from matplotlib.patches import Rectangle
-from scipy.integrate import trapz
+from scipy.integrate import trapezoid as trapz
 
 def find_nearest(array,value):
     idx = (np.abs(array-value)).argmin()
