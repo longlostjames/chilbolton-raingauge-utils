@@ -223,7 +223,12 @@ def process_file(infile, outdir="./", metadata_file="metadata_rg1_stfc.json",
     if actual_count_var != count_var_name:
         print(f"[INFO] Variable '{count_var_name}' not in template; writing count to '{actual_count_var}'.")
     nant.util.update_variable(nc, actual_count_var, number_of_drops)
+    if actual_count_var == "number_of_tips":
+        nc.variables[actual_count_var].long_name = "Number of tipping bucket tips counted in integration period"
+    else:
+        nc.variables[actual_count_var].long_name = "Number of pulses/drops counted in integration period"
     nant.util.update_variable(nc, "thickness_of_rainfall_amount", rainfall_mm)
+    nc.variables["thickness_of_rainfall_amount"].long_name = "Rain accumulated in integration period"
 
     # Add time_coverage_start and time_coverage_end metadata
     nc.setncattr(
@@ -237,6 +242,9 @@ def process_file(infile, outdir="./", metadata_file="metadata_rg1_stfc.json",
 
     # Add metadata from file
     nant.util.add_metadata_to_netcdf(nc, metadata_file)
+    for _attr in ("laser_wavelength", "laser_sample_area"):
+        if _attr in nc.ncattrs():
+            nc.delncattr(_attr)
 
     # Set processing software version from package
     version_str = __version__ if __version__.startswith('v') else f"v{__version__}"

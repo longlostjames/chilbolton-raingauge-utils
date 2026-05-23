@@ -147,7 +147,9 @@ def process_file(infile, outdir="./", metadata_file="metadata_rg1_f5.json",
     accumulation_per_drop_mm = float(metadata.get("measurement_quanta", "0.00331 mm").split()[0])
     rainfall_mm = df["number_of_drops"] * accumulation_per_drop_mm
     nant.util.update_variable(nc, "number_of_drops", df["number_of_drops"])
+    nc.variables["number_of_drops"].long_name = "Number of pulses/drops counted in integration period"
     nant.util.update_variable(nc, "thickness_of_rainfall_amount", rainfall_mm)
+    nc.variables["thickness_of_rainfall_amount"].long_name = "Rain accumulated in integration period"
 
     # Add time_coverage_start and time_coverage_end metadata
     nc.setncattr(
@@ -161,6 +163,9 @@ def process_file(infile, outdir="./", metadata_file="metadata_rg1_f5.json",
 
     # Add metadata from file
     nant.util.add_metadata_to_netcdf(nc, metadata_file)
+    for _attr in ("laser_wavelength", "laser_sample_area"):
+        if _attr in nc.ncattrs():
+            nc.delncattr(_attr)
 
     # Set processing software version from package
     version_str = __version__ if __version__.startswith('v') else f"v{__version__}"

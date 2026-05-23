@@ -316,7 +316,9 @@ def process_file(infile, outdir="./", metadata_file="metadata_rg1.json",
         number_of_drops = df[column_name]
         rainfall_mm = number_of_drops * accumulation_per_drop_mm
     nant.util.update_variable(nc, count_var_name, number_of_drops)
+    nc.variables[count_var_name].long_name = "Number of pulses/drops counted in integration period"
     nant.util.update_variable(nc, "thickness_of_rainfall_amount", rainfall_mm)
+    nc.variables["thickness_of_rainfall_amount"].long_name = "Rain accumulated in integration period"
 
     # Detect pump cycles and apply QC flags.
     # Every 12 hours the gauge automatically flushes its reservoir.  The
@@ -361,6 +363,9 @@ def process_file(infile, outdir="./", metadata_file="metadata_rg1.json",
 
     # Add metadata from file
     nant.util.add_metadata_to_netcdf(nc, metadata_file)
+    for _attr in ("laser_wavelength", "laser_sample_area"):
+        if _attr in nc.ncattrs():
+            nc.delncattr(_attr)
 
     # Set processing software version from package
     version_str = __version__ if __version__.startswith('v') else f"v{__version__}"
