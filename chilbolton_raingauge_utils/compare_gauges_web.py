@@ -778,10 +778,10 @@ async function runScatter() {
   const labelB = gauges[slotB]?.label ?? `Slot ${slotB+1}`;
   const wetOnly = document.getElementById('scatter-wet-only').checked;
 
-  // Step 1: wet-hours filter — exclude hours where both gauges are zero
+  // Step 1: wet-hours filter — exclude hours where both gauges are zero (for display)
   const wetIdx = d.x.map((x, i) => (!wetOnly || x > 0 || d.y[i] > 0) ? i : -1).filter(i => i >= 0);
-  // Step 2: threshold filter — exclude hours where either gauge is below the OLS threshold
-  const plotIdx = wetIdx.filter(i => d.x[i] >= olsThresh && d.y[i] >= olsThresh);
+  // Display all wet hours; the threshold is used only for the regression fit (applied server-side)
+  const plotIdx = wetIdx;
   const px = plotIdx.map(i => d.x[i]);
   const py = plotIdx.map(i => d.y[i]);
   const ptimes = plotIdx.map(i => d.times[i]);
@@ -1982,7 +1982,9 @@ def _make_app(start_dir: str):
                 lambda g: g.sum() if g.notna().sum() >= 240 else np.nan
             )
             hourly = hourly.dropna()
-            return hourly.index.astype(np.int64) // 10**9, hourly.values
+            epoch = pd.Timestamp('1970-01-01', tz='UTC')
+            hour_unix = (hourly.index - epoch).total_seconds().astype(np.int64)
+            return hour_unix, hourly.values
 
         t_a_hr, mm_a = _hourly_mm(g_a['unix'].astype(float), g_a['rainfall_rate'])
         t_b_hr, mm_b = _hourly_mm(g_b['unix'].astype(float), g_b['rainfall_rate'])

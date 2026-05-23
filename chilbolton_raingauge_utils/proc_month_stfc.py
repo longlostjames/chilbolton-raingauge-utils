@@ -62,6 +62,8 @@ def main():
                         help="Base directory for raw data")
     parser.add_argument("--output-base", type=str, default=None,
                         help="Base directory for output NetCDF files (default: gauge-specific path)")
+    parser.add_argument("-d", "--day", type=int, default=None,
+                        help="Day of month to process (1-31); if omitted, all days in the month are processed")
     args = parser.parse_args()
 
     if args.month < 1 or args.month > 12:
@@ -78,11 +80,15 @@ def main():
         print(f"Error: Metadata file not found at {metadata_file}", file=sys.stderr)
         sys.exit(1)
 
-    start_date = datetime(args.year, args.month, 1)
-    if args.month == 12:
-        end_date = datetime(args.year, 12, 31)
+    if args.day is not None:
+        start_date = datetime(args.year, args.month, args.day)
+        end_date = start_date
     else:
-        end_date = datetime(args.year, args.month + 1, 1) - timedelta(days=1)
+        start_date = datetime(args.year, args.month, 1)
+        if args.month == 12:
+            end_date = datetime(args.year, 12, 31)
+        else:
+            end_date = datetime(args.year, args.month + 1, 1) - timedelta(days=1)
 
     current_date = start_date
 
