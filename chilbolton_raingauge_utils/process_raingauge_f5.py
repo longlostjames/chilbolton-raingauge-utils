@@ -145,12 +145,9 @@ def process_file(infile, outdir="./", metadata_file="metadata_rg1_f5.json",
 
     # Add drop count and derived rainfall data to NetCDF file
     accumulation_per_drop_mm = float(metadata.get("measurement_quanta", "0.00331 mm").split()[0])
-    sampling_interval_s = float(metadata.get("sampling_interval", "10.0 second").split()[0])
     rainfall_mm = df["number_of_drops"] * accumulation_per_drop_mm
-    rainfall_rate_mm_hr = rainfall_mm / sampling_interval_s * 3600.0
     nant.util.update_variable(nc, "number_of_drops", df["number_of_drops"])
     nant.util.update_variable(nc, "thickness_of_rainfall_amount", rainfall_mm)
-    nant.util.update_variable(nc, "rainfall_rate", rainfall_rate_mm_hr)
 
     # Add time_coverage_start and time_coverage_end metadata
     nc.setncattr(

@@ -205,13 +205,12 @@ def process_file(infile, outdir="./", metadata_file="metadata_rg1_stfc.json",
 
     # Add drop count and derived rainfall data to NetCDF file
     accumulation_per_drop_mm = float(metadata.get("measurement_quanta", "0.00331 mm").split()[0])
-    sampling_interval_s = float(metadata.get("sampling_interval", "10.0 second").split()[0])
     if column_is_mm:
         # Column already holds accumulated rainfall in mm (e.g. tipping-bucket
         # logger outputs tip_count * tip_size_mm directly).
         # Derive the tip count by rounding to the nearest integer tip, then
         # recompute rainfall_mm from tip_count * quanta so that
-        # thickness_of_rainfall_amount and rainfall_rate are consistent with
+        # thickness_of_rainfall_amount is consistent with
         # the canonical measurement_quanta value in the metadata.
         rainfall_mm_raw = df[column_name]
         number_of_drops = (rainfall_mm_raw / accumulation_per_drop_mm).round(0).cast(pl.Int64)
@@ -219,10 +218,12 @@ def process_file(infile, outdir="./", metadata_file="metadata_rg1_stfc.json",
     else:
         number_of_drops = df[column_name]
         rainfall_mm = number_of_drops * accumulation_per_drop_mm
-    rainfall_rate_mm_hr = rainfall_mm / sampling_interval_s * 3600.0
-    nant.util.update_variable(nc, count_var_name, number_of_drops)
+    # Use the requested count variable name if the template created it, otherwise fall back to number_of_drops
+    actual_count_var = count_var_name if count_var_name in nc.variables else "number_of_drops"
+    if actual_count_var != count_var_name:
+        print(f"[INFO] Variable '{count_var_name}' not in template; writing count to '{actual_count_var}'.")
+    nant.util.update_variable(nc, actual_count_var, number_of_drops)
     nant.util.update_variable(nc, "thickness_of_rainfall_amount", rainfall_mm)
-    nant.util.update_variable(nc, "rainfall_rate", rainfall_rate_mm_hr)
 
     # Add time_coverage_start and time_coverage_end metadata
     nc.setncattr(
@@ -267,15 +268,46 @@ def process_file(infile, outdir="./", metadata_file="metadata_rg1_stfc.json",
     file_name = nc.filepath()
     nc.close()
     nant.remove_empty_variables.main(file_name)
-    _drop_unused_count_var(file_name, count_var_name)
+    _drop_unused_count_var(file_name, actual_count_var)
+
+
+# Gauge configurations (shared with proc_month_stfc)
+_GAUGE_CONFIGS = {
+    1: {"instrument_name": "stfc-rain-gauge-1", "column_name": "rg001dc_ch_Tot",
+        "count_var_name": "number_of_drops", "column_is_mm": False, "metadata_file": "metadata_rg1_stfc.json"},
+    2: {"instrument_name": "stfc-rain-gauge-2", "column_name": "rg006dc_ch_Tot",
+        "count_var_name": "number_of_drops", "column_is_mm": False, "metadata_file": "metadata_rg2_stfc.json"},
+    3: {"instrument_name": "stfc-rain-gauge-3", "column_name": "rg008dc_ch_Tot",
+        "count_var_name": "number_of_drops", "column_is_mm": False, "metadata_file": "metadata_rg3_stfc.json"},
+    9: {"instrument_name": "stfc-rain-gauge-9", "column_name": "rg009dc_ch_Tot",
+        "count_var_name": "number_of_drops", "column_is_mm": False, "metadata_file": "metadata_rg9_stfc.json"},
+    5: {"instrument_name": "stfc-rain-gauge-5", "column_name": "rg004tb_ch_Tot",
+        "count_var_name": "number_of_tips", "column_is_mm": True, "metadata_file": "metadata_rg5_stfc.json"},
+}
 
 
 def main():
     """CLI entry point for process-raingauge-stfc command."""
     import argparse
+    from pathlib import Path
     parser = argparse.ArgumentParser(description="Process RAL Drop Counting Gauge raingauge data (STFC variant) to netCDF")
     parser.add_argument("infile", type=str, help="Input CR1000X .dat file")
     parser.add_argument("-o", "--outdir", type=str, default="./", help="Output directory")
-    parser.add_argument("-m", "--metadata_file", type=str, default="metadata_stfc.json", help="Metadata file")
+    parser.add_argument("-m", "--metadata_file", type=str, default=None,
+                        help="Metadata JSON file (default: auto-selected from --gauge)")
+    parser.add_argument("-g", "--gauge", type=int, choices=[1, 2, 3, 5, 9], default=None,
+                        help="Gauge number (1, 2, 3, 5, 9) — sets instrument name, column, and metadata automatically")
     args = parser.parse_args()
-    process_file(args.infile, outdir=args.outdir, metadata_file=args.metadata_file)
+
+    if args.gauge is not None:
+        cfg = _GAUGE_CONFIGS[args.gauge]
+        script_dir = Path(__file__).parent
+        metadata_file = args.metadata_file or str(script_dir / cfg["metadata_file"])
+        process_file(args.infile, outdir=args.outdir, metadata_file=metadata_file,
+                     instrument_name=cfg["instrument_name"],
+                     column_name=cfg["column_name"],
+                     count_var_name=cfg["count_var_name"],
+                     column_is_mm=cfg["column_is_mm"])
+    else:
+        metadata_file = args.metadata_file or "metadata_stfc.json"
+        process_file(args.infile, outdir=args.outdir, metadata_file=metadata_file)

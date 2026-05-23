@@ -302,7 +302,6 @@ def process_file(infile, outdir="./", metadata_file="metadata_rg1.json",
 
     # Add drop count and derived rainfall data to NetCDF file
     accumulation_per_drop_mm = float(metadata.get("measurement_quanta", "0.00331 mm").split()[0])
-    sampling_interval_s = float(metadata.get("sampling_interval", "10.0 second").split()[0])
     if column_is_mm:
         # Column already holds accumulated rainfall in mm (e.g. tipping-bucket
         # logger outputs tip_count * tip_size_mm directly).
@@ -316,10 +315,8 @@ def process_file(infile, outdir="./", metadata_file="metadata_rg1.json",
     else:
         number_of_drops = df[column_name]
         rainfall_mm = number_of_drops * accumulation_per_drop_mm
-    rainfall_rate_mm_hr = rainfall_mm / sampling_interval_s * 3600.0
     nant.util.update_variable(nc, count_var_name, number_of_drops)
     nant.util.update_variable(nc, "thickness_of_rainfall_amount", rainfall_mm)
-    nant.util.update_variable(nc, "rainfall_rate", rainfall_rate_mm_hr)
 
     # Detect pump cycles and apply QC flags.
     # Every 12 hours the gauge automatically flushes its reservoir.  The
