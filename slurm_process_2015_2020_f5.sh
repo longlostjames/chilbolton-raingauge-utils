@@ -5,7 +5,7 @@
 #SBATCH --qos=standard
 #SBATCH --time=24:00:00
 #SBATCH --mem=16G
-#SBATCH --array=2015-2020
+#SBATCH --array=2014-2020
 #SBATCH --output=logs/raingauge_f5_%A_%a.out
 #SBATCH --error=logs/raingauge_f5_%A_%a.err
 

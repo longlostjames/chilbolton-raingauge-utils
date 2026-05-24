@@ -359,6 +359,9 @@ _HTML = r"""<!DOCTYPE html>
           <input id="intercal-cov" type="number" value="80" min="10" max="100" step="5" style="width:50px">
           <label style="margin-left:-6px">%</label>
           <button id="btn-intercal" onclick="refreshIntercal()">Plot</button>
+          <button id="btn-clear-flags" onclick="clearIntercalFlags()"
+            title="Remove all flagged hours and replot"
+            style="display:none;background:#c62828;color:#fff;border:none;border-radius:4px;padding:4px 10px;cursor:pointer;font-size:12px">Clear flags</button>
           <span id="intercal-status" style="color:#888;font-size:11px"></span>
         </div>
         <div id="intercal-areas">
@@ -388,6 +391,10 @@ let activeSlot = 0;  // which slot the file browser will load into
 
 // Selected time range from TS zoom (unix seconds, or null = full range)
 let tsRange = null;  // {t0: number, t1: number} | null
+
+// Hours flagged as bad in the intercalibration chart (excluded from regression)
+let flaggedHours = new Set();  // Set of 'YYYY-MM-DDTHH' keys
+function clearIntercalFlags() { flaggedHours.clear(); refreshIntercal(); }
 
 function _isoToUnix(iso) {
   // Plotly relayout gives ISO strings like "2024-01-01 00:00:00" or "2024-01-01T00:00:00"
@@ -1477,14 +1484,16 @@ function refreshIntercal() {
     const cHours = hourlyMaps[cg.idx];
 
     // Pair up common hours above accumulation threshold (compare in mm, no area scaling)
-    // Apply quanta correction factors before regression
-    const xs = [], ys = [];
+    // Apply quanta correction factors before regression; split into good / flagged
+    const xs = [], ys = [], hrKeys = [];
+    const xsBad = [], ysBad = [], hrKeysBad = [];
     for (const [hr, rv] of refHours) {
       if (!cHours.has(hr)) continue;
       const cv = cHours.get(hr);
       if (rv.accum_mm < thresh || cv.accum_mm < thresh) continue;
-      xs.push(rv.accum_mm * corrRef);
-      ys.push(cv.accum_mm * corrCG);
+      const xv = rv.accum_mm * corrRef, yv = cv.accum_mm * corrCG;
+      if (flaggedHours.has(hr)) { xsBad.push(xv); ysBad.push(yv); hrKeysBad.push(hr); }
+      else                      { xs.push(xv);    ys.push(yv);    hrKeys.push(hr); }
     }
     totalPts += xs.length;
     const reg = _regressOLS(xs, ys);
@@ -1494,11 +1503,18 @@ function refreshIntercal() {
     const x0  = ci * colW + (ci > 0 ? colGap/2 : 0);
     const x1  = (ci+1)*colW - (ci < nCols-1 ? colGap/2 : 0);
 
-    // Scatter points
+    // Scatter points (good — included in regression)
     traces.push({ x: xs, y: ys, mode: 'markers',
+      customdata: hrKeys,
       marker: { color: cg.color, size: 5, opacity: 0.55 },
       name: cg.label, xaxis: xax, yaxis: yax,
-      hovertemplate: `${refG.label}: %{x:.4f} mm<br>${cg.label}: %{y:.4f} mm<extra></extra>` });
+      hovertemplate: `%{customdata}<br>${refG.label}: %{x:.4f} mm<br>${cg.label}: %{y:.4f} mm<br><i>Click to flag</i><extra></extra>` });
+    // Flagged points (excluded from regression, shown as grey ×)
+    if (xsBad.length) traces.push({ x: xsBad, y: ysBad, mode: 'markers',
+      customdata: hrKeysBad,
+      marker: { color: '#bdbdbd', size: 7, opacity: 0.9, symbol: 'x' },
+      name: `${cg.label} (flagged)`, xaxis: xax, yaxis: yax,
+      hovertemplate: `%{customdata} — flagged<br>${refG.label}: %{x:.4f} mm<br>${cg.label}: %{y:.4f} mm<br><i>Click to unflag</i><extra></extra>` });
 
     if (reg) {
       const xmax = xs.reduce((a, b) => b > a ? b : a, 0) * 1.08;
@@ -1564,7 +1580,22 @@ function refreshIntercal() {
   layout.height = Math.max(chartDiv.clientHeight || 400, 320);
   Plotly.newPlot(chartDiv, traces, layout, { responsive: true, displayModeBar: false });
 
-  status.textContent = `${totalPts} hourly pairs across ${comps.length} comparison(s).`;
+  // Click a point to toggle its hour as flagged (excluded from regression)
+  chartDiv.removeAllListeners('plotly_click');
+  chartDiv.on('plotly_click', function(evt) {
+    const pt = evt.points[0];
+    if (!pt || typeof pt.customdata !== 'string') return;
+    const hr = pt.customdata;
+    if (flaggedHours.has(hr)) flaggedHours.delete(hr);
+    else flaggedHours.add(hr);
+    refreshIntercal();
+  });
+
+  const nFlagged = flaggedHours.size;
+  status.textContent = `${totalPts} hourly pairs across ${comps.length} comparison(s).`
+    + (nFlagged ? ` ${nFlagged} hour${nFlagged === 1 ? '' : 's'} flagged (excluded from regression).` : '');
+  const btnClear = document.getElementById('btn-clear-flags');
+  if (btnClear) btnClear.style.display = nFlagged ? '' : 'none';
 
   tableWrap.innerHTML = tableRows
     ? `<table id="intercal-table"><tr>
