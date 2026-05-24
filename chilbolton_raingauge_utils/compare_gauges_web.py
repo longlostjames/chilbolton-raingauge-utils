@@ -1453,7 +1453,10 @@ function refreshIntercal() {
 
   // Hourly accumulations for every loaded gauge
   const hourlyMaps = {};
-  for (const g of loaded) hourlyMaps[g.idx] = _hourlyAccum(g, minCov);
+  for (const g of loaded) {
+    const sub = _subsetToRange(g.times, g.rainfall_rate);
+    hourlyMaps[g.idx] = _hourlyAccum({ times: sub.times, rainfall_rate: sub.rates }, minCov);
+  }
   const refHours = hourlyMaps[refIdx];
 
   const comps = loaded.filter(g => g.idx !== refIdx);
@@ -1592,8 +1595,12 @@ function refreshIntercal() {
   });
 
   const nFlagged = flaggedHours.size;
+  const rangeNote = tsRange
+    ? ` | range: ${document.getElementById('range-t0').value.replace('T',' ')} – ${document.getElementById('range-t1').value.replace('T',' ')} UTC`
+    : '';
   status.textContent = `${totalPts} hourly pairs across ${comps.length} comparison(s).`
-    + (nFlagged ? ` ${nFlagged} hour${nFlagged === 1 ? '' : 's'} flagged (excluded from regression).` : '');
+    + (nFlagged ? ` ${nFlagged} hour${nFlagged === 1 ? '' : 's'} flagged (excluded from regression).` : '')
+    + rangeNote;
   const btnClear = document.getElementById('btn-clear-flags');
   if (btnClear) btnClear.style.display = nFlagged ? '' : 'none';
 
