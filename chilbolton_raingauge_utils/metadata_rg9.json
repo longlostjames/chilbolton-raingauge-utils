@@ -11,7 +11,7 @@
     "processing_software_url": "https://github.com/longlostjames/chilbolton-raingauge-utils",
     "processing_software_version": "__VERSION__",
     "measurement_technique": "drop_counting",
-    "measurement_quanta": "0.0039 mm",
+    "measurement_quanta": "0.004 +/-0.0004 mm",
     "collection_throat_diameter": "0.1378 m",
     "collection_area": "0.01491 m2",
     "calibration_sensitivity": "0 - 60 mm/hour",
